@@ -113,13 +113,28 @@ function repairReplyForBusinessIdentity(reply, settings = {}) {
   const mainOffer = settings.mainOffer || "";
   if (businessName && !/\bsin ai\b/i.test(businessName)) {
     fixed = fixed.replace(/\bSIN AI\b/g, businessName);
+    fixed = fixed.replace(new RegExp(`\\b${escapeRegExp(businessName)}\\s+Sales Bot\\b`, "gi"), businessName);
   }
   if (mainOffer && !/\bsales bots?\b/i.test(mainOffer)) {
     fixed = fixed.replace(/\badvanced AI sales bots and automation systems\b/gi, mainOffer);
     fixed = fixed.replace(/\bAI sales bots and automation systems\b/gi, mainOffer);
     fixed = fixed.replace(/\bAI sales bots?\b/gi, mainOffer);
   }
-  return fixed;
+  return applyRequestedWordLimit(fixed, settings);
+}
+
+function applyRequestedWordLimit(reply, settings = {}) {
+  const instructionText = `${settings.masterPrompt || ""} ${settings.replyStyle || ""}`;
+  const match = instructionText.match(/\b(?:under|below|max(?:imum)?|less than)\s+(\d{1,3})\s+words?\b/i);
+  if (!match) return reply;
+  const limit = Math.max(8, Number(match[1]));
+  const words = reply.trim().split(/\s+/);
+  if (words.length <= limit) return reply;
+  return `${words.slice(0, limit).join(" ").replace(/[,.!?;:]*$/, "")}.`;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function createGeminiReply(prompt) {
@@ -306,6 +321,8 @@ Important guardrails:
 - If the owner's master instruction gives a tone, word limit, business identity, or response format, obey it.
 - If default example packages, FAQs, or objections conflict with the owner-entered business name, industry, main offer, background, or master instruction, ignore the default examples.
 - If the customer asks for B2B contacts, suppliers, companies, leads, current information, or anything requiring the internet, use the live web context when present. Include source links and say when search was not available.
+- Source links must be direct URLs copied from the live web context. Do not replace URLs with only source names.
+- For contact lists, only provide contact names, phone numbers, emails, websites, or addresses found in live web context. If a detail is not grounded, leave it out.
 - Do not mention cleaning, cleaning services, or cleaning leads unless the latest customer message explicitly asks about a cleaning business.
 - If older conversation or lead notes mention cleaning but the latest customer message does not, treat that as stale demo context and ignore it.
 
