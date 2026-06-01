@@ -139,7 +139,7 @@ async function createGeminiReply(prompt) {
 }
 
 async function getWebContext(body, provider) {
-  const settings = { ...defaultServerSettings, ...(body.settings || {}) };
+  const settings = getRequestSettings(body.settings);
   const latestMessage = body.message || "";
   if (!shouldSearchWeb(latestMessage, settings)) return "";
 
@@ -247,7 +247,7 @@ function extractOutputText(data) {
 function buildSalesPrompt(body, webContext = "") {
   const latestMessage = body.message || "";
   const cleaningAllowed = isCleaningContextAllowed(latestMessage);
-  const settings = sanitizeSettingsContext({ ...defaultServerSettings, ...(body.settings || {}) }, cleaningAllowed);
+  const settings = sanitizeSettingsContext(getRequestSettings(body.settings), cleaningAllowed);
   const lead = sanitizeLeadContext(body.lead || {}, cleaningAllowed);
   const conversation = sanitizeConversationContext((body.conversation || []).slice(-8), cleaningAllowed);
   return `You are the AI sales assistant for ${settings.businessName || "a business"}.
@@ -292,6 +292,12 @@ Important guardrails:
 - If older conversation or lead notes mention cleaning but the latest customer message does not, treat that as stale demo context and ignore it.
 
 Return only JSON that matches the schema.`;
+}
+
+function getRequestSettings(settings = {}) {
+  const hasSettings = settings && typeof settings === "object" && Object.keys(settings).length > 0;
+  if (!hasSettings) return { ...defaultServerSettings };
+  return settings;
 }
 
 function isCleaningContextAllowed(latestMessage = "") {
