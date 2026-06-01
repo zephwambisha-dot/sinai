@@ -34,8 +34,8 @@ export async function createBotReply(body) {
   const webContext = await getWebContext(body, provider);
   const prompt = buildSalesPrompt(body, webContext);
   try {
-    if (provider === "gemini") return normalizeBotResult(await createGeminiReply(prompt), requestSettings);
-    return normalizeBotResult(await createOpenAiReply(prompt), requestSettings);
+    const rawResult = provider === "gemini" ? await createGeminiReply(prompt) : await createOpenAiReply(prompt);
+    return normalizeBotResult(rawResult, requestSettings, webContext);
   } catch (error) {
     return normalizeBotResult({
       source: `${provider}-fallback`,
@@ -43,7 +43,7 @@ export async function createBotReply(body) {
       nextStage: "qualify",
       actions: ["Refine search", "Try again", "Talk to owner"],
       leadPatch: {}
-    }, requestSettings);
+    }, requestSettings, webContext);
   }
 }
 
@@ -106,17 +106,64 @@ async function createOpenAiReply(prompt) {
   return { source: "openai", ...JSON.parse(extractOutputText(data)) };
 }
 
-function normalizeBotResult(result, settings = {}) {
+function normalizeBotResult(result, settings = {}, webContext = "") {
   const actions = Array.isArray(result.actions) && result.actions.length
     ? result.actions.slice(0, 4)
     : ["Tell me more", "Show pricing", "Talk to owner"];
+  const researchContacts = extractResearchContacts(`${result.reply || ""}\n${webContext}`);
   return {
     ...result,
     reply: repairReplyForBusinessIdentity(result.reply || "I can help with that. What do you need most right now?", settings),
     nextStage: result.nextStage || "qualify",
-    actions,
+    actions: researchContacts.length ? ["Download VCF", "Download CSV", ...actions].slice(0, 4) : actions,
+    researchContacts,
     leadPatch: result.leadPatch || {}
   };
+}
+
+function extractResearchContacts(text = "") {
+  const chunks = text
+    .split(/\n|;|(?=\d+\.\s)|(?<=\))\s+(?=[A-Z][A-Za-z])/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  const contacts = [];
+  chunks.forEach((chunk) => {
+    const phones = chunk.match(/(?:\+?\d[\d\s().-]{6,}\d)/g) || [];
+    if (!phones.length) return;
+    const email = chunk.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
+    const website = chunk.match(/https?:\/\/[^\s),]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s),]*)?/i)?.[0] || "";
+    const name = cleanContactName(chunk.split(/:| - |,|\(|\bTEL\b|\bPhone\b/i)[0] || "");
+    phones.forEach((phone) => {
+      contacts.push({
+        name: name || "Unknown company",
+        phone: phone.trim(),
+        email,
+        website,
+        source: website
+      });
+    });
+  });
+  return dedupeContacts(contacts).slice(0, 100);
+}
+
+function cleanContactName(value = "") {
+  return value
+    .replace(/^URL\s*/i, "")
+    .replace(/^Snippet\s*/i, "")
+    .replace(/^\d+\.\s*/, "")
+    .replace(/\*\*/g, "")
+    .trim()
+    .slice(0, 90);
+}
+
+function dedupeContacts(contacts) {
+  const seen = new Set();
+  return contacts.filter((contact) => {
+    const key = `${contact.name}|${contact.phone}`.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function repairReplyForBusinessIdentity(reply, settings = {}) {
@@ -148,7 +195,7 @@ function buildBusyProviderFallbackReply(message = "", settings = {}, webContext 
   if (shouldSearchWeb(message, settings)) {
     return `Live search or the AI model is temporarily unavailable: ${error.message || "provider busy"}. Please try again in a moment, or add a dedicated Brave Search key for more reliable B2B research.`;
   }
-  return `The AI model is temporarily busy. Please try again in a moment, or hand this lead to the owner if it is urgent.`;
+  return serverFallbackReply(message, settings, {});
 }
 
 function applyRequestedWordLimit(reply, settings = {}) {

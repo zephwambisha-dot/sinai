@@ -633,6 +633,19 @@ h3 {
   color: #fff;
 }
 
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  margin-top: 10px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: #111412;
+  color: #ffffff;
+  font-weight: 780;
+}
+
 .quick-actions {
   display: flex;
   flex-wrap: wrap;

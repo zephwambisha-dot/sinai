@@ -1,6 +1,8 @@
 const STORAGE_KEYS = {
   settings: "sin-ai-sales-bot-settings-v3",
-  leads: "sin-ai-sales-bot-leads"
+  leads: "sin-ai-sales-bot-leads",
+  conversation: "sin-ai-sales-bot-conversation-v1",
+  researchContacts: "sin-ai-sales-bot-research-contacts-v1"
 };
 
 const defaultSettings = {
@@ -23,7 +25,8 @@ const state = {
   view: "chat",
   settings: loadSettings(),
   leads: loadLeads(),
-  conversation: [],
+  conversation: loadConversation(),
+  researchContacts: loadResearchContacts(),
   stage: "start",
   lead: createEmptyLead()
 };
@@ -34,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
   bindEvents();
   populateSettingsForm();
-  startConversation();
+  if (!state.conversation.length) startConversation();
   renderAll();
   syncServerLeads();
 });
@@ -111,6 +114,14 @@ function loadLeads() {
   return readJson(STORAGE_KEYS.leads, []);
 }
 
+function loadConversation() {
+  return readJson(STORAGE_KEYS.conversation, []);
+}
+
+function loadResearchContacts() {
+  return readJson(STORAGE_KEYS.researchContacts, []);
+}
+
 function readJson(key, fallback) {
   try {
     const stored = localStorage.getItem(key);
@@ -147,6 +158,8 @@ function createEmptyLead() {
 
 function startConversation() {
   state.conversation = [];
+  state.researchContacts = [];
+  saveJson(STORAGE_KEYS.researchContacts, state.researchContacts);
   state.stage = "need";
   state.lead = createEmptyLead();
   addBotMessage(`Hi. This is ${state.settings.businessName}. I can help you choose the right service and confirm the next step. What do you need help with today?`);
@@ -161,14 +174,25 @@ function resetConversation() {
 
 function addBotMessage(text) {
   state.conversation.push({ sender: "bot", text });
+  saveJson(STORAGE_KEYS.conversation, state.conversation.slice(-20));
 }
 
 function addUserMessage(text) {
   state.conversation.push({ sender: "user", text });
+  saveJson(STORAGE_KEYS.conversation, state.conversation.slice(-20));
 }
 
 async function handleCustomerMessage(message) {
   addUserMessage(message);
+  if (isContactExportRequest(message) && state.researchContacts.length) {
+    const attachment = createContactExportAttachment(message, state.researchContacts);
+    addBotMessage(`Prepared ${attachment.label} for ${state.researchContacts.length} saved research contacts. Use the download link below.`);
+    state.conversation[state.conversation.length - 1].attachment = attachment;
+    saveJson(STORAGE_KEYS.conversation, state.conversation.slice(-20));
+    setQuickActions(["Find more contacts", "Download CSV", "Download VCF"]);
+    renderAll();
+    return;
+  }
   captureLeadData(message);
   const reply = await getBotReply(message);
   addBotMessage(reply.text);
@@ -196,15 +220,27 @@ async function getBotReply(message) {
     if (!response.ok) throw new Error("API reply failed");
     const data = await response.json();
     applyLeadPatch(data.leadPatch);
+    if (Array.isArray(data.researchContacts) && data.researchContacts.length) {
+      state.researchContacts = mergeResearchContacts(state.researchContacts, data.researchContacts);
+      saveJson(STORAGE_KEYS.researchContacts, state.researchContacts);
+    }
     updateScore();
     return {
       text: data.reply || localReply.text,
       nextStage: data.nextStage || localReply.nextStage,
-      actions: Array.isArray(data.actions) && data.actions.length ? data.actions.slice(0, 4) : localReply.actions
+      actions: getReplyActions(data, localReply)
     };
   } catch {
     return localReply;
   }
+}
+
+function getReplyActions(data, localReply) {
+  const actions = Array.isArray(data.actions) && data.actions.length ? data.actions.slice(0, 4) : localReply.actions;
+  if (state.researchContacts.length && !actions.some((action) => /vcf/i.test(action))) {
+    return ["Download VCF", "Download CSV", ...actions].slice(0, 4);
+  }
+  return actions;
 }
 
 function canUseApi() {
@@ -374,6 +410,78 @@ function setQuickActions(actions) {
   });
 }
 
+function isContactExportRequest(message = "") {
+  return /\b(vcf|vcard|csv|excel|spreadsheet|download|export|save contacts?|contact file)\b/i.test(message);
+}
+
+function mergeResearchContacts(existing = [], incoming = []) {
+  const contacts = [...existing];
+  const seen = new Set(contacts.map(contactKey));
+  incoming.forEach((contact) => {
+    const normalized = normalizeResearchContact(contact);
+    const key = contactKey(normalized);
+    if (normalized.name && (normalized.phone || normalized.email || normalized.website) && !seen.has(key)) {
+      contacts.push(normalized);
+      seen.add(key);
+    }
+  });
+  return contacts.slice(-150);
+}
+
+function normalizeResearchContact(contact = {}) {
+  return {
+    name: cleanSentence(contact.name || "Unknown company"),
+    phone: String(contact.phone || "").trim(),
+    email: String(contact.email || "").trim(),
+    website: String(contact.website || contact.source || "").trim(),
+    source: String(contact.source || contact.website || "").trim()
+  };
+}
+
+function contactKey(contact) {
+  return `${contact.name}|${contact.phone}|${contact.email}`.toLowerCase();
+}
+
+function createContactExportAttachment(message, contacts) {
+  const wantsCsv = /\b(csv|excel|spreadsheet)\b/i.test(message);
+  const content = wantsCsv ? buildContactsCsv(contacts) : buildContactsVcf(contacts);
+  const filename = wantsCsv ? "b2b-research-contacts.csv" : "b2b-research-contacts.vcf";
+  return {
+    label: wantsCsv ? "CSV" : "VCF",
+    filename,
+    mimeType: wantsCsv ? "text/csv;charset=utf-8" : "text/vcard;charset=utf-8",
+    content
+  };
+}
+
+function buildContactsCsv(contacts) {
+  const rows = [["Name", "Phone", "Email", "Website", "Source"], ...contacts.map((contact) => [
+    contact.name,
+    contact.phone,
+    contact.email,
+    contact.website,
+    contact.source
+  ])];
+  return rows.map((row) => row.map(csvCell).join(",")).join("\n");
+}
+
+function buildContactsVcf(contacts) {
+  return contacts.map((contact) => [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `FN:${vcfText(contact.name)}`,
+    contact.phone ? `TEL;TYPE=WORK,VOICE:${vcfText(contact.phone)}` : "",
+    contact.email ? `EMAIL;TYPE=WORK:${vcfText(contact.email)}` : "",
+    contact.website ? `URL:${vcfText(contact.website)}` : "",
+    contact.source ? `NOTE:${vcfText(`Source: ${contact.source}`)}` : "",
+    "END:VCARD"
+  ].filter(Boolean).join("\n")).join("\n");
+}
+
+function vcfText(value = "") {
+  return String(value).replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+}
+
 function renderAll() {
   renderHeader();
   renderChat();
@@ -393,10 +501,23 @@ function renderChat() {
   state.conversation.forEach((message) => {
     const node = document.createElement("div");
     node.className = `message ${message.sender}`;
-    node.textContent = message.text;
+    const textNode = document.createElement("div");
+    textNode.textContent = message.text;
+    node.appendChild(textNode);
+    if (message.attachment) node.appendChild(createDownloadLink(message.attachment));
     elements.chatWindow.appendChild(node);
   });
   elements.chatWindow.scrollTop = elements.chatWindow.scrollHeight;
+}
+
+function createDownloadLink(attachment) {
+  const blob = new Blob([attachment.content], { type: attachment.mimeType });
+  const link = document.createElement("a");
+  link.className = "download-link";
+  link.href = URL.createObjectURL(blob);
+  link.download = attachment.filename;
+  link.textContent = `Download ${attachment.label}`;
+  return link;
 }
 
 function renderLeadSummary() {
