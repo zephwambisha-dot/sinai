@@ -1,18 +1,18 @@
 const STORAGE_KEYS = {
-  settings: "sin-ai-sales-bot-settings",
+  settings: "sin-ai-sales-bot-settings-v2",
   leads: "sin-ai-sales-bot-leads"
 };
 
 const defaultSettings = {
-  businessName: "Kampala Cleaning Services",
-  industry: "Cleaning company",
-  mainOffer: "Home, office, sofa, carpet, and post-construction cleaning",
-  startingPrice: "Starts from UGX 50,000 depending on the job",
-  paymentMethods: "Mobile Money or bank transfer",
-  handoffRule: "Call the owner when the customer wants same-day service, asks for a custom quote, or is ready to pay.",
-  packages: "Basic home cleaning\nDeep cleaning\nOffice cleaning\nSofa and carpet cleaning\nPost-construction cleaning",
-  faqs: "How much is cleaning?\nDo you clean offices?\nCan you come today?\nWhere are you located?\nDo you bring your own equipment?",
-  objections: "I will get back to you\nYour price is high\nI need to ask someone\nCan you send pictures?\nI need it urgently"
+  businessName: "SIN AI Sales Bot",
+  industry: "AI automation and sales systems",
+  mainOffer: "AI sales bots that answer customer questions, qualify buyers, collect lead details, and guide serious customers toward booking or payment",
+  startingPrice: "Custom setup depending on the business, channel, and automation level",
+  paymentMethods: "Mobile Money, bank transfer, or agreed business payment method",
+  handoffRule: "Alert the owner when the customer asks for pricing, wants setup, shares contact details, or is ready to book/pay.",
+  packages: "Starter website sales bot\nPro website bot with lead dashboard\nAdvanced bot with API, CRM, and WhatsApp/Instagram handoff",
+  faqs: "Can this work for my business?\nCan it use OpenAI or Gemini?\nCan it collect leads?\nCan it work on my website?\nCan it connect to WhatsApp later?",
+  objections: "Is this expensive?\nWill it replace my staff?\nCan it understand my customers?\nHow long does setup take?\nCan I test it first?"
 };
 
 const state = {
