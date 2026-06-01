@@ -70,7 +70,8 @@ export function getSearchStatus() {
     providers: {
       openai: Boolean(process.env.OPENAI_API_KEY),
       gemini: Boolean(process.env.GEMINI_API_KEY),
-      brave: Boolean(process.env.BRAVE_SEARCH_API_KEY)
+      brave: Boolean(process.env.BRAVE_SEARCH_API_KEY),
+      duckduckgoFallback: true
     }
   };
 }
@@ -138,9 +139,9 @@ function buildBusyProviderFallbackReply(message = "", settings = {}, webContext 
     const compactContext = webContext
       .split(/\n+/)
       .filter((line) => line.trim())
-      .slice(0, 14)
+      .slice(0, 42)
       .join("\n")
-      .slice(0, 1400);
+      .slice(0, 4200);
     return `The AI model is busy, but I found live research context for your request:\n\n${compactContext}\n\nPlease verify details before outreach.`;
   }
   if (shouldSearchWeb(message, settings)) {
@@ -201,14 +202,28 @@ async function getWebContext(body, provider) {
   if (!shouldSearchWeb(latestMessage, settings)) return "";
 
   const searchQuery = buildSearchQuery(latestMessage, settings);
+  const errors = [];
   try {
     if (process.env.BRAVE_SEARCH_API_KEY) return await searchWithBrave(searchQuery);
+  } catch (error) {
+    errors.push(`Brave: ${error.message}`);
+  }
+  try {
     if (provider === "gemini" && process.env.GEMINI_API_KEY) return await searchWithGemini(searchQuery, settings);
+  } catch (error) {
+    errors.push(`Gemini search: ${error.message}`);
+  }
+  try {
     if (provider === "openai" && process.env.OPENAI_API_KEY) return await searchWithOpenAi(searchQuery, settings);
   } catch (error) {
-    return `Internet search was requested, but live search failed: ${error.message}`;
+    errors.push(`OpenAI search: ${error.message}`);
   }
-  return "Internet search was requested, but no search provider is configured. Enable Gemini/OpenAI search or add BRAVE_SEARCH_API_KEY on the server.";
+  try {
+    return await searchWithDuckDuckGo(searchQuery, getRequestedResultCount(latestMessage));
+  } catch (error) {
+    errors.push(`DuckDuckGo fallback: ${error.message}`);
+  }
+  return `Internet search was requested, but live search failed. ${errors.join(" | ") || "No search provider is configured."}`;
 }
 
 function shouldSearchWeb(message = "", settings = {}) {
@@ -217,8 +232,24 @@ function shouldSearchWeb(message = "", settings = {}) {
 }
 
 function buildSearchQuery(message = "", settings = {}) {
+  if (/\b(contacts?|numbers?|phone|emails?|leads?|companies|businesses|suppliers?|b2b)\b/i.test(message)) {
+    const cleaned = message
+      .replace(/\b(i want|give me|find me|search for|look up|please|with source links?|source links?)\b/gi, " ")
+      .replace(/\b\d{1,3}\s+(?:b2b\s+)?(?:contacts?|numbers?|leads?)\s+(?:of|for)?\b/gi, " ")
+      .replace(/\bb2b\s+(?:contacts?|numbers?|leads?)\s+(?:of|for)?\b/gi, " ")
+      .replace(/\bin\s+([A-Z][a-z]+)/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+    return `${cleaned} phone number`.replace(/\s+/g, " ").trim().slice(0, 240);
+  }
   const businessContext = [settings.industry, settings.businessName].filter(Boolean).join(" ");
   return `${message} ${businessContext}`.replace(/\s+/g, " ").trim().slice(0, 240);
+}
+
+function getRequestedResultCount(message = "") {
+  const match = message.match(/\b(\d{1,3})\b/);
+  if (!match) return 10;
+  return Math.max(5, Math.min(Number(match[1]), 30));
 }
 
 async function searchWithBrave(query) {
@@ -258,6 +289,101 @@ async function searchWithOpenAi(query, settings) {
   }
   const data = await apiResponse.json();
   return `Live web search notes for "${query}":\n${extractOutputText(data)}`;
+}
+
+async function searchWithDuckDuckGo(query, requestedCount = 10) {
+  const results = [];
+  let nextOffset = 0;
+  let vqd = "";
+  for (let page = 0; page < 3 && results.length < requestedCount; page += 1) {
+    const params = new URLSearchParams({
+      q: query,
+      kl: "wt-wt"
+    });
+    if (page > 0) {
+      params.set("s", String(nextOffset));
+      params.set("dc", String(nextOffset + 1));
+      params.set("v", "l");
+      params.set("o", "json");
+      params.set("api", "d.js");
+      if (vqd) params.set("vqd", vqd);
+    }
+    const apiResponse = await fetch(`https://lite.duckduckgo.com/lite/?${params.toString()}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "text/html"
+      }
+    });
+    if (!apiResponse.ok || apiResponse.status === 202) throw new Error(`DuckDuckGo error: ${apiResponse.status}`);
+    const html = await apiResponse.text();
+    results.push(...parseDuckDuckGoResults(html), ...parseDuckDuckGoLiteResults(html));
+    nextOffset += 10;
+    vqd = decodeHtml(html.match(/name="vqd"\s+value="([^"]+)"/)?.[1] || vqd);
+    if (!/class=['"]btn btn--alt['"]\s+value="Next"/i.test(html)) break;
+  }
+
+  const uniqueResults = dedupeResults(results).slice(0, requestedCount);
+  if (!uniqueResults.length) return `DuckDuckGo fallback search returned no results for "${query}".`;
+  const formatted = uniqueResults.map((result, index) => (
+    `${index + 1}. ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
+  ));
+  return `DuckDuckGo fallback search results for "${query}". These are web snippets and must be verified before outreach:\n${formatted.join("\n\n")}`;
+}
+
+function parseDuckDuckGoResults(html) {
+  const blocks = html.match(/<div class="result results_links[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g) || [];
+  return blocks.map((block) => {
+    const href = block.match(/class="result__a"\s+href="([^"]+)"/)?.[1] || "";
+    const title = stripHtml(block.match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/)?.[1] || "");
+    const snippet = stripHtml(block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/)?.[1] || "");
+    const url = unwrapDuckDuckGoUrl(decodeHtml(href));
+    return { title, url, snippet };
+  }).filter((result) => result.title && result.url);
+}
+
+function parseDuckDuckGoLiteResults(html) {
+  const rows = [...html.matchAll(/<a(?=[^>]+class=['"]result-link['"])(?=[^>]+href="([^"]+)")[^>]*>([\s\S]*?)<\/a>[\s\S]*?<td class=['"]result-snippet['"]>([\s\S]*?)<\/td>/g)];
+  return rows.map((match) => {
+    const href = match[1] || "";
+    const title = stripHtml(match[2] || "");
+    const snippet = stripHtml(match[3] || "");
+    const url = unwrapDuckDuckGoUrl(decodeHtml(href));
+    return { title, url, snippet };
+  }).filter((result) => result.title && result.url);
+}
+
+function dedupeResults(results) {
+  const seen = new Set();
+  return results.filter((result) => {
+    const key = result.url.replace(/\/$/, "");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function unwrapDuckDuckGoUrl(href) {
+  try {
+    const url = href.startsWith("//") ? `https:${href}` : href;
+    const parsed = new URL(url);
+    return parsed.searchParams.get("uddg") || url;
+  } catch {
+    return href;
+  }
+}
+
+function stripHtml(value = "") {
+  return decodeHtml(value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+}
+
+function decodeHtml(value = "") {
+  return String(value)
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
 async function searchWithGemini(query, settings) {
