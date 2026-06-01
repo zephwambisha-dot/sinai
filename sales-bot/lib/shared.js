@@ -1,6 +1,17 @@
 const aiProvider = (process.env.AI_PROVIDER || "openai").toLowerCase();
 const openAiModel = process.env.OPENAI_MODEL || "gpt-5.2";
 const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const defaultServerSettings = {
+  businessName: "SIN AI Sales Bot",
+  industry: "AI automation and sales systems",
+  mainOffer: "AI sales bots that answer customer questions, qualify buyers, collect lead details, and guide serious customers toward booking or payment",
+  startingPrice: "Custom setup depending on the business, channel, and automation level",
+  paymentMethods: "Mobile Money, bank transfer, or agreed business payment method",
+  handoffRule: "Alert the owner when the customer asks for pricing, wants setup, shares contact details, or is ready to book/pay.",
+  packages: "Starter website sales bot\nPro website bot with lead dashboard\nAdvanced bot with API, CRM, and WhatsApp/Instagram handoff",
+  faqs: "Can this work for my business?\nCan it use OpenAI or Gemini?\nCan it collect leads?\nCan it work on my website?\nCan it connect to WhatsApp later?",
+  objections: "Is this expensive?\nWill it replace my staff?\nCan it understand my customers?\nHow long does setup take?\nCan I test it first?"
+};
 
 export async function createBotReply(body) {
   const provider = getActiveProvider();
@@ -96,9 +107,11 @@ async function createGeminiReply(prompt) {
 }
 
 function buildSalesPrompt(body) {
-  const settings = body.settings || {};
-  const lead = body.lead || {};
-  const conversation = (body.conversation || []).slice(-8);
+  const latestMessage = body.message || "";
+  const cleaningAllowed = isCleaningContextAllowed(latestMessage);
+  const settings = sanitizeSettingsContext(body.settings || {}, cleaningAllowed);
+  const lead = sanitizeLeadContext(body.lead || {}, cleaningAllowed);
+  const conversation = sanitizeConversationContext((body.conversation || []).slice(-8), cleaningAllowed);
   return `You are the SIN AI Sales Bot for ${settings.businessName || "a business"}.
 
 Business profile:
@@ -118,12 +131,53 @@ Recent conversation:
 ${JSON.stringify(conversation)}
 
 Latest customer message:
-${body.message || ""}
+${latestMessage}
 
 Goal:
 Reply like a professional sales assistant. Answer clearly, ask one useful qualifying question, and push serious buyers toward booking/payment or human handoff. Do not invent unavailable prices or policies. Keep replies short enough for WhatsApp.
 
+Important guardrails:
+- Sell SIN AI sales bots, automation, lead capture, CRM/WhatsApp handoff, and AI business systems unless the latest customer message clearly names another business type.
+- Do not mention cleaning, cleaning services, or cleaning leads unless the latest customer message explicitly asks about a cleaning business.
+- If older conversation or lead notes mention cleaning but the latest customer message does not, treat that as stale demo context and ignore it.
+
 Return only JSON that matches the schema.`;
+}
+
+function isCleaningContextAllowed(latestMessage = "") {
+  return /\b(clean|cleaning|cleaner|janitor|housekeeping)\b/i.test(latestMessage);
+}
+
+function sanitizeSettingsContext(settings = {}, cleaningAllowed) {
+  if (cleaningAllowed) return settings;
+  const hasCleaningProfile = Object.values(settings).some((value) => (
+    typeof value === "string" && /\b(clean|cleaning|cleaner|janitor|housekeeping)\b/i.test(value)
+  ));
+  return hasCleaningProfile ? { ...defaultServerSettings } : settings;
+}
+
+function sanitizeLeadContext(lead = {}, cleaningAllowed) {
+  if (cleaningAllowed) return lead;
+  return removeCleaningTextFromObject(lead);
+}
+
+function sanitizeConversationContext(conversation = [], cleaningAllowed) {
+  if (cleaningAllowed) return conversation;
+  return conversation.map((message) => removeCleaningTextFromObject(message));
+}
+
+function removeCleaningTextFromObject(value) {
+  if (Array.isArray(value)) return value.map(removeCleaningTextFromObject);
+  if (!value || typeof value !== "object") return stripCleaningText(value);
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, stripCleaningText(entry)])
+  );
+}
+
+function stripCleaningText(value) {
+  if (typeof value !== "string") return value;
+  if (!/\b(clean|cleaning|cleaner|janitor|housekeeping)\b/i.test(value)) return value;
+  return "";
 }
 
 function serverFallbackReply(message = "", settings = {}, lead = {}) {
