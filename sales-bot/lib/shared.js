@@ -1,6 +1,7 @@
 const aiProvider = (process.env.AI_PROVIDER || "openai").toLowerCase();
 const openAiModel = process.env.OPENAI_MODEL || "gpt-5.2";
 const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const webSearchEnabled = process.env.ENABLE_WEB_SEARCH !== "false";
 const defaultServerSettings = {
   businessName: "SIN AI Sales Bot",
   industry: "AI automation and sales systems",
@@ -8,6 +9,10 @@ const defaultServerSettings = {
   startingPrice: "Custom setup depending on the business, channel, and automation level",
   paymentMethods: "Mobile Money, bank transfer, or agreed business payment method",
   handoffRule: "Alert the owner when the customer asks for pricing, wants setup, shares contact details, or is ready to book/pay.",
+  replyStyle: "Professional, direct, helpful, and short enough for WhatsApp. Ask one useful question at a time.",
+  businessBackground: "SIN AI helps businesses use AI sales bots, automations, AI video, and AI systems to reduce manual work and convert more leads.",
+  masterPrompt: "Always act as a practical AI sales assistant for this business. Use the business details as the source of truth. Never claim a service, price, guarantee, or contact is confirmed unless it is provided in the setup or grounded web results. If the user asks for leads, suppliers, companies, or B2B contacts, use internet search when available and include source links.",
+  webSearch: "enabled",
   packages: "Starter website sales bot\nPro website bot with lead dashboard\nAdvanced bot with API, CRM, and WhatsApp/Instagram handoff",
   faqs: "Can this work for my business?\nCan it use OpenAI or Gemini?\nCan it collect leads?\nCan it work on my website?\nCan it connect to WhatsApp later?",
   objections: "Is this expensive?\nWill it replace my staff?\nCan it understand my customers?\nHow long does setup take?\nCan I test it first?"
@@ -19,11 +24,14 @@ export async function createBotReply(body) {
     return {
       source: "demo",
       reply: serverFallbackReply(body.message, body.settings, body.lead),
+      nextStage: "qualify",
+      actions: ["Set up API key", "Add master prompt", "Try another search"],
       leadPatch: {}
     };
   }
 
-  const prompt = buildSalesPrompt(body);
+  const webContext = await getWebContext(body, provider);
+  const prompt = buildSalesPrompt(body, webContext);
   if (provider === "gemini") return createGeminiReply(prompt);
   return createOpenAiReply(prompt);
 }
@@ -43,6 +51,17 @@ export async function notifyHotLead(lead) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "hot_lead", lead })
   });
+}
+
+export function getSearchStatus() {
+  return {
+    enabled: webSearchEnabled,
+    providers: {
+      openai: Boolean(process.env.OPENAI_API_KEY),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
+      brave: Boolean(process.env.BRAVE_SEARCH_API_KEY)
+    }
+  };
 }
 
 async function createOpenAiReply(prompt) {
@@ -71,7 +90,7 @@ async function createOpenAiReply(prompt) {
   }
 
   const data = await apiResponse.json();
-  return { source: "openai", ...JSON.parse(data.output_text) };
+  return { source: "openai", ...JSON.parse(extractOutputText(data)) };
 }
 
 async function createGeminiReply(prompt) {
@@ -106,23 +125,138 @@ async function createGeminiReply(prompt) {
   return { source: "gemini", ...JSON.parse(text) };
 }
 
-function buildSalesPrompt(body) {
+async function getWebContext(body, provider) {
+  const settings = { ...defaultServerSettings, ...(body.settings || {}) };
+  const latestMessage = body.message || "";
+  if (!shouldSearchWeb(latestMessage, settings)) return "";
+
+  const searchQuery = buildSearchQuery(latestMessage, settings);
+  try {
+    if (process.env.BRAVE_SEARCH_API_KEY) return searchWithBrave(searchQuery);
+    if (provider === "gemini" && process.env.GEMINI_API_KEY) return searchWithGemini(searchQuery, settings);
+    if (provider === "openai" && process.env.OPENAI_API_KEY) return searchWithOpenAi(searchQuery, settings);
+  } catch (error) {
+    return `Internet search was requested, but live search failed: ${error.message}`;
+  }
+  return "Internet search was requested, but no search provider is configured. Enable Gemini/OpenAI search or add BRAVE_SEARCH_API_KEY on the server.";
+}
+
+function shouldSearchWeb(message = "", settings = {}) {
+  if (!webSearchEnabled || settings.webSearch === "disabled") return false;
+  return /\b(search|internet|web|google|find|look up|research|source|sources|latest|current|today|contacts?|leads?|b2b|suppliers?|companies|businesses|emails?|phone numbers?|whatsapp|directory|list of)\b/i.test(message);
+}
+
+function buildSearchQuery(message = "", settings = {}) {
+  const businessContext = [settings.industry, settings.businessName].filter(Boolean).join(" ");
+  return `${message} ${businessContext}`.replace(/\s+/g, " ").trim().slice(0, 240);
+}
+
+async function searchWithBrave(query) {
+  const url = new URL("https://api.search.brave.com/res/v1/web/search");
+  url.searchParams.set("q", query);
+  url.searchParams.set("count", "8");
+  const apiResponse = await fetch(url, {
+    headers: {
+      "Accept": "application/json",
+      "X-Subscription-Token": process.env.BRAVE_SEARCH_API_KEY
+    }
+  });
+  if (!apiResponse.ok) throw new Error(`Brave Search error: ${apiResponse.status}`);
+  const data = await apiResponse.json();
+  const results = (data.web?.results || []).slice(0, 8).map((result, index) => (
+    `${index + 1}. ${result.title}\nURL: ${result.url}\nSnippet: ${result.description || ""}`
+  ));
+  return results.length ? `Live web search results for "${query}":\n${results.join("\n\n")}` : `Live web search returned no results for "${query}".`;
+}
+
+async function searchWithOpenAi(query, settings) {
+  const apiResponse = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: openAiModel,
+      tools: [{ type: "web_search_preview" }],
+      input: `Search the web for this request and return concise grounded notes with useful source URLs. Business context: ${settings.businessName || ""}, ${settings.industry || ""}. Request: ${query}`
+    })
+  });
+  if (!apiResponse.ok) {
+    const detail = await apiResponse.text();
+    throw new Error(`OpenAI web search error: ${apiResponse.status} ${detail}`);
+  }
+  const data = await apiResponse.json();
+  return `Live web search notes for "${query}":\n${extractOutputText(data)}`;
+}
+
+async function searchWithGemini(query, settings) {
+  const apiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": process.env.GEMINI_API_KEY
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [{
+            text: `Search the web for this request and return concise grounded notes with useful source URLs. Business context: ${settings.businessName || ""}, ${settings.industry || ""}. Request: ${query}`
+          }]
+        }
+      ],
+      tools: [{ googleSearch: {} }]
+    })
+  });
+  if (!apiResponse.ok) {
+    const detail = await apiResponse.text();
+    throw new Error(`Gemini web search error: ${apiResponse.status} ${detail}`);
+  }
+  const data = await apiResponse.json();
+  const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+  const urls = (data.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
+    .map((chunk) => chunk.web?.uri)
+    .filter(Boolean)
+    .slice(0, 8);
+  return `Live web search notes for "${query}":\n${text || "No notes returned."}\n\nSources:\n${urls.join("\n")}`;
+}
+
+function extractOutputText(data) {
+  if (data.output_text) return data.output_text;
+  return (data.output || [])
+    .flatMap((item) => item.content || [])
+    .map((content) => content.text || "")
+    .join("")
+    .trim();
+}
+
+function buildSalesPrompt(body, webContext = "") {
   const latestMessage = body.message || "";
   const cleaningAllowed = isCleaningContextAllowed(latestMessage);
-  const settings = sanitizeSettingsContext(body.settings || {}, cleaningAllowed);
+  const settings = sanitizeSettingsContext({ ...defaultServerSettings, ...(body.settings || {}) }, cleaningAllowed);
   const lead = sanitizeLeadContext(body.lead || {}, cleaningAllowed);
   const conversation = sanitizeConversationContext((body.conversation || []).slice(-8), cleaningAllowed);
-  return `You are the SIN AI Sales Bot for ${settings.businessName || "a business"}.
+  return `You are the AI sales assistant for ${settings.businessName || "a business"}.
+
+Master instruction from the business owner:
+${settings.masterPrompt || ""}
 
 Business profile:
 - Industry: ${settings.industry || ""}
 - Main offer: ${settings.mainOffer || ""}
 - Starting price: ${settings.startingPrice || ""}
 - Payment methods: ${settings.paymentMethods || ""}
+- Business background: ${settings.businessBackground || ""}
+- Reply style: ${settings.replyStyle || ""}
+- Internet search setting: ${settings.webSearch || "enabled"}
 - Packages/services: ${settings.packages || ""}
 - FAQs: ${settings.faqs || ""}
 - Objections: ${settings.objections || ""}
 - Handoff rule: ${settings.handoffRule || ""}
+
+Live web context, if available:
+${webContext || "No live web search context was used for this message."}
 
 Current lead:
 ${JSON.stringify(lead)}
@@ -134,10 +268,11 @@ Latest customer message:
 ${latestMessage}
 
 Goal:
-Reply like a professional sales assistant. Answer clearly, ask one useful qualifying question, and push serious buyers toward booking/payment or human handoff. Do not invent unavailable prices or policies. Keep replies short enough for WhatsApp.
+Reply like a professional sales assistant using the owner's master instruction as the highest-priority business rule. Answer clearly, ask one useful qualifying question, and push serious buyers toward booking/payment or human handoff. Do not invent unavailable prices, policies, business facts, contacts, phone numbers, emails, or source links. Keep replies short enough for WhatsApp unless the customer asks for a researched list.
 
 Important guardrails:
-- Sell SIN AI sales bots, automation, lead capture, CRM/WhatsApp handoff, and AI business systems unless the latest customer message clearly names another business type.
+- Follow the customized business setup. Do not force SIN AI if the owner configured another business.
+- If the customer asks for B2B contacts, suppliers, companies, leads, current information, or anything requiring the internet, use the live web context when present. Include source links and say when search was not available.
 - Do not mention cleaning, cleaning services, or cleaning leads unless the latest customer message explicitly asks about a cleaning business.
 - If older conversation or lead notes mention cleaning but the latest customer message does not, treat that as stale demo context and ignore it.
 
@@ -182,6 +317,9 @@ function stripCleaningText(value) {
 
 function serverFallbackReply(message = "", settings = {}, lead = {}) {
   const lower = message.toLowerCase();
+  if (shouldSearchWeb(message, settings)) {
+    return "Live internet search needs the backend AI/search API to be configured. Add Gemini/OpenAI or a Brave Search key on the server, then I can research current B2B contacts and include source links instead of guessing.";
+  }
   if (/\b(price|cost|how much|quote)\b/.test(lower)) {
     return `Our pricing ${settings.startingPrice || "depends on the job"}. To quote correctly, what exactly do you need, where are you located, and when do you need it?`;
   }

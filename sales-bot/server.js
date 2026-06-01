@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createBotReply as createSharedBotReply, getActiveProvider as getSharedActiveProvider, getSearchStatus } from "./lib/shared.js";
 
 loadLocalEnv();
 
@@ -34,15 +35,16 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/health") {
       return sendJson(response, 200, {
         ok: true,
-        mode: getActiveProvider(),
+        mode: getSharedActiveProvider(),
         configuredProvider: aiProvider,
+        webSearch: getSearchStatus(),
         leadStorage: "server-json"
       });
     }
 
     if (url.pathname === "/api/chat" && request.method === "POST") {
       const body = await readJsonBody(request);
-      const result = await createBotReply(body);
+      const result = await createSharedBotReply(body);
       return sendJson(response, 200, result);
     }
 

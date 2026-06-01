@@ -133,7 +133,7 @@
           <nav class="nav-tabs" aria-label="Bot navigation">
             <button class="nav-tab active" data-view="chat">Chat</button>
             <button class="nav-tab" data-view="leads">Leads</button>
-            <button class="nav-tab" data-view="setup">Setup</button>
+            <button class="nav-tab" data-view="setup">AI Setup</button>
             <button class="nav-tab" data-view="scripts">Scripts</button>
           </nav>
 
@@ -293,6 +293,25 @@
               <label>
                 Human handoff rule
                 <input name="handoffRule" type="text">
+              </label>
+              <label>
+                Reply style
+                <input name="replyStyle" type="text" placeholder="Example: friendly, premium, short WhatsApp replies">
+              </label>
+              <label>
+                Internet search
+                <select name="webSearch">
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </label>
+              <label class="wide">
+                Business background
+                <textarea name="businessBackground" rows="5" placeholder="Tell the AI what the business does, who it serves, locations, guarantees, process, policies, and important context."></textarea>
+              </label>
+              <label class="wide">
+                Master instruction prompt
+                <textarea name="masterPrompt" rows="7" placeholder="Give the AI rules it must always follow. Example: tone, sales process, when to ask questions, what not to say, how to handle B2B contact searches."></textarea>
               </label>
               <label class="wide">
                 Packages or services

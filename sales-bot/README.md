@@ -6,8 +6,10 @@ This is the first website version of the SIN AI Sales Bot. It includes a public 
 
 - Presents the product as a client-facing website.
 - Replies to customer messages using a configurable business profile.
+- Lets each business owner add a master instruction prompt, business background, and preferred reply style.
 - Uses a backend API when running with `npm start`.
 - Can use OpenAI or Gemini from the backend when an API key is configured.
+- Can use internet search for requests such as current information, suppliers, companies, leads, and B2B contact research when search is enabled.
 - Answers service, price, booking, and payment questions.
 - Qualifies leads by need, timeframe, budget, and contact.
 - Scores leads from 0 to 100.
@@ -54,6 +56,8 @@ Optional:
 
 - `OPENAI_MODEL` controls the OpenAI model.
 - `GEMINI_MODEL` controls the Gemini model.
+- `ENABLE_WEB_SEARCH=false` disables search globally.
+- `BRAVE_SEARCH_API_KEY` enables Brave Search as the dedicated search provider. Without it, the app tries the active AI provider's native web search where available.
 - `HOT_LEAD_WEBHOOK_URL` sends hot leads to another automation/webhook endpoint.
 
 ## How To Customize
@@ -61,10 +65,12 @@ Optional:
 1. Open the app.
 2. Go to `Setup`.
 3. Enter the client's business details.
-4. Click `Save Setup`.
-5. Test the customer chat.
-6. Save serious leads.
-7. Export CSV when needed.
+4. Add the client's business background, reply style, and master instruction prompt.
+5. Enable or disable internet search for that client's bot.
+6. Click `Save Setup`.
+7. Test the customer chat.
+8. Save serious leads.
+9. Export CSV when needed.
 
 ## First Sales Use
 

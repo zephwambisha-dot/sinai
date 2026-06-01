@@ -1,5 +1,5 @@
 const STORAGE_KEYS = {
-  settings: "sin-ai-sales-bot-settings-v2",
+  settings: "sin-ai-sales-bot-settings-v3",
   leads: "sin-ai-sales-bot-leads"
 };
 
@@ -10,6 +10,10 @@ const defaultSettings = {
   startingPrice: "Custom setup depending on the business, channel, and automation level",
   paymentMethods: "Mobile Money, bank transfer, or agreed business payment method",
   handoffRule: "Alert the owner when the customer asks for pricing, wants setup, shares contact details, or is ready to book/pay.",
+  replyStyle: "Professional, direct, helpful, and short enough for WhatsApp. Ask one useful question at a time.",
+  businessBackground: "SIN AI helps businesses use AI sales bots, automations, AI video, and AI systems to reduce manual work and convert more leads.",
+  masterPrompt: "Always act as a practical AI sales assistant for this business. Use the business details as the source of truth. Never claim a service, price, guarantee, or contact is confirmed unless it is provided in the setup or grounded web results. If the user asks for leads, suppliers, companies, or B2B contacts, use internet search when available and include source links.",
+  webSearch: "enabled",
   packages: "Starter website sales bot\nPro website bot with lead dashboard\nAdvanced bot with API, CRM, and WhatsApp/Instagram handoff",
   faqs: "Can this work for my business?\nCan it use OpenAI or Gemini?\nCan it collect leads?\nCan it work on my website?\nCan it connect to WhatsApp later?",
   objections: "Is this expensive?\nWill it replace my staff?\nCan it understand my customers?\nHow long does setup take?\nCan I test it first?"
@@ -110,7 +114,12 @@ function loadLeads() {
 function readJson(key, fallback) {
   try {
     const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
+    if (!stored) return fallback;
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && fallback && typeof fallback === "object" && !Array.isArray(fallback)) {
+      return { ...fallback, ...parsed };
+    }
+    return parsed;
   } catch {
     return fallback;
   }
@@ -565,6 +574,14 @@ Main offer: ${settings.mainOffer}
 Starting price: ${settings.startingPrice}
 Payment methods: ${settings.paymentMethods}
 Human handoff rule: ${settings.handoffRule}
+Reply style: ${settings.replyStyle}
+Web search: ${settings.webSearch}
+
+BUSINESS BACKGROUND
+${settings.businessBackground}
+
+MASTER INSTRUCTION PROMPT
+${settings.masterPrompt}
 
 CUSTOMER WELCOME
 Hi. Thanks for contacting ${settings.businessName}. I can help you choose the right service and confirm the next step. What do you need help with today?
