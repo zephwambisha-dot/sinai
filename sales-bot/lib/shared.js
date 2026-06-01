@@ -32,8 +32,8 @@ export async function createBotReply(body) {
 
   const webContext = await getWebContext(body, provider);
   const prompt = buildSalesPrompt(body, webContext);
-  if (provider === "gemini") return createGeminiReply(prompt);
-  return createOpenAiReply(prompt);
+  if (provider === "gemini") return normalizeBotResult(await createGeminiReply(prompt));
+  return normalizeBotResult(await createOpenAiReply(prompt));
 }
 
 export function getActiveProvider() {
@@ -91,6 +91,19 @@ async function createOpenAiReply(prompt) {
 
   const data = await apiResponse.json();
   return { source: "openai", ...JSON.parse(extractOutputText(data)) };
+}
+
+function normalizeBotResult(result) {
+  const actions = Array.isArray(result.actions) && result.actions.length
+    ? result.actions.slice(0, 4)
+    : ["Tell me more", "Show pricing", "Talk to owner"];
+  return {
+    ...result,
+    reply: result.reply || "I can help with that. What do you need most right now?",
+    nextStage: result.nextStage || "qualify",
+    actions,
+    leadPatch: result.leadPatch || {}
+  };
 }
 
 async function createGeminiReply(prompt) {
@@ -239,7 +252,7 @@ function buildSalesPrompt(body, webContext = "") {
   const conversation = sanitizeConversationContext((body.conversation || []).slice(-8), cleaningAllowed);
   return `You are the AI sales assistant for ${settings.businessName || "a business"}.
 
-Master instruction from the business owner:
+Master instruction from the business owner. Treat this as the highest-priority business behavior after safety and JSON-format rules:
 ${settings.masterPrompt || ""}
 
 Business profile:
@@ -272,6 +285,8 @@ Reply like a professional sales assistant using the owner's master instruction a
 
 Important guardrails:
 - Follow the customized business setup. Do not force SIN AI if the owner configured another business.
+- If the owner's master instruction gives a tone, word limit, business identity, or response format, obey it.
+- If default example packages, FAQs, or objections conflict with the owner-entered business name, industry, main offer, background, or master instruction, ignore the default examples.
 - If the customer asks for B2B contacts, suppliers, companies, leads, current information, or anything requiring the internet, use the live web context when present. Include source links and say when search was not available.
 - Do not mention cleaning, cleaning services, or cleaning leads unless the latest customer message explicitly asks about a cleaning business.
 - If older conversation or lead notes mention cleaning but the latest customer message does not, treat that as stale demo context and ignore it.
