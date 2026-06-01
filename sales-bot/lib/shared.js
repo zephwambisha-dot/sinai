@@ -33,8 +33,18 @@ export async function createBotReply(body) {
 
   const webContext = await getWebContext(body, provider);
   const prompt = buildSalesPrompt(body, webContext);
-  if (provider === "gemini") return normalizeBotResult(await createGeminiReply(prompt), requestSettings);
-  return normalizeBotResult(await createOpenAiReply(prompt), requestSettings);
+  try {
+    if (provider === "gemini") return normalizeBotResult(await createGeminiReply(prompt), requestSettings);
+    return normalizeBotResult(await createOpenAiReply(prompt), requestSettings);
+  } catch (error) {
+    return normalizeBotResult({
+      source: `${provider}-fallback`,
+      reply: buildBusyProviderFallbackReply(body.message, requestSettings, webContext, error),
+      nextStage: "qualify",
+      actions: ["Refine search", "Try again", "Talk to owner"],
+      leadPatch: {}
+    }, requestSettings);
+  }
 }
 
 export function getActiveProvider() {
@@ -121,6 +131,22 @@ function repairReplyForBusinessIdentity(reply, settings = {}) {
     fixed = fixed.replace(/\bAI sales bots?\b/gi, mainOffer);
   }
   return applyRequestedWordLimit(fixed, settings);
+}
+
+function buildBusyProviderFallbackReply(message = "", settings = {}, webContext = "", error = {}) {
+  if (webContext && !/live search failed|no search provider/i.test(webContext)) {
+    const compactContext = webContext
+      .split(/\n+/)
+      .filter((line) => line.trim())
+      .slice(0, 14)
+      .join("\n")
+      .slice(0, 1400);
+    return `The AI model is busy, but I found live research context for your request:\n\n${compactContext}\n\nPlease verify details before outreach.`;
+  }
+  if (shouldSearchWeb(message, settings)) {
+    return `Live search or the AI model is temporarily unavailable: ${error.message || "provider busy"}. Please try again in a moment, or add a dedicated Brave Search key for more reliable B2B research.`;
+  }
+  return `The AI model is temporarily busy. Please try again in a moment, or hand this lead to the owner if it is urgent.`;
 }
 
 function applyRequestedWordLimit(reply, settings = {}) {
