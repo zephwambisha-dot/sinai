@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIN AI Sales Bot | AI Sales Assistant Website</title>
+  <meta name="description" content="SIN AI Sales Bot replies to customer questions, qualifies serious buyers, captures leads, and helps businesses close more sales.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-brand" href="#home" aria-label="SIN AI Sales Bot home">
+      <span class="brand-mark">S</span>
+      <span>SIN AI Sales Bot</span>
+    </a>
+    <nav class="site-nav" aria-label="Website navigation">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#app">Live bot</a>
+    </nav>
+    <a class="header-cta" href="#app">Review</a>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <img class="hero-image" src="assets/sales-bot-hero.png" alt="Business owner reviewing AI-assisted customer sales conversations">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <p class="eyebrow">SIN AI sales product</p>
+        <h1>SIN AI Sales Bot for serious customer inquiries.</h1>
+        <p class="hero-copy">A clean website bot that replies fast, qualifies buyers, captures lead details, and gives business owners a focused dashboard for follow-up.</p>
+        <div class="hero-points" aria-label="Product focus">
+          <span>Website chat</span>
+          <span>Lead scoring</span>
+          <span>Owner handoff</span>
+        </div>
+        <div class="hero-actions">
+          <a class="primary-btn" href="#app">Review The Bot</a>
+          <a class="secondary-btn light" href="#features">See Features</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-band proof-strip" aria-label="Product highlights">
+      <div class="proof-item">
+        <strong>24/7</strong>
+        <span>customer replies</span>
+      </div>
+      <div class="proof-item">
+        <strong>0-100</strong>
+        <span>lead scoring</span>
+      </div>
+      <div class="proof-item">
+        <strong>CSV</strong>
+        <span>lead export</span>
+      </div>
+      <div class="proof-item">
+        <strong>Fast</strong>
+        <span>client setup</span>
+      </div>
+    </section>
+
+    <section class="section-band" id="features">
+      <div class="section-inner">
+        <div class="section-title">
+          <p class="eyebrow">What it does</p>
+          <h2>Built for businesses that lose buyers inside chat.</h2>
+          <p>Instead of only collecting messages, the bot guides each buyer through the sales conversation and prepares the owner to close with context.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon">01</span>
+            <h3>Answers sales questions</h3>
+            <p>Handles pricing, service, booking, location, payment, and objection replies from a configurable business profile.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">02</span>
+            <h3>Qualifies buyers</h3>
+            <p>Captures what the customer needs, when they need it, budget, contact details, and readiness to proceed.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">03</span>
+            <h3>Gives owner control</h3>
+            <p>Saves leads locally, exports CSV files, and generates reusable sales scripts for WhatsApp or manual follow-up.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-band muted" id="how-it-works">
+      <div class="section-inner split">
+        <div>
+          <p class="eyebrow">Sales workflow</p>
+          <h2>Simple enough to sell now. Structured enough to scale later.</h2>
+          <p>The first version works as a website tool. Later it can connect to WhatsApp, Instagram, CRMs, payment links, and real AI APIs once the offer is validated with paying clients.</p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span>1</span>
+            <p>Set up the business offer, prices, FAQs, objections, and payment methods.</p>
+          </div>
+          <div class="step">
+            <span>2</span>
+            <p>Let customers chat with the bot and answer the key sales qualification questions.</p>
+          </div>
+          <div class="step">
+            <span>3</span>
+            <p>Review hot leads, save notes, export CSV, and follow up with serious buyers.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-section" id="app">
+      <div class="section-inner app-intro">
+        <div>
+          <p class="eyebrow">Live product</p>
+          <h2>Run the SIN AI Sales Bot</h2>
+        </div>
+        <p>This is the working bot interface. Customize it for any business, test customer conversations, and save qualified leads.</p>
+      </div>
+
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand">
+            <div class="brand-mark">S</div>
+            <div>
+              <p class="eyebrow">SIN AI</p>
+              <h2>Sales Bot</h2>
+            </div>
+          </div>
+
+          <nav class="nav-tabs" aria-label="Bot navigation">
+            <button class="nav-tab active" data-view="chat">Chat</button>
+            <button class="nav-tab" data-view="leads">Leads</button>
+            <button class="nav-tab" data-view="setup">Setup</button>
+            <button class="nav-tab" data-view="scripts">Scripts</button>
+          </nav>
+
+          <section class="metric-panel" aria-label="Sales metrics">
+            <div>
+              <span class="metric-value" id="totalLeads">0</span>
+              <span class="metric-label">Leads</span>
+            </div>
+            <div>
+              <span class="metric-value" id="hotLeads">0</span>
+              <span class="metric-label">Hot</span>
+            </div>
+            <div>
+              <span class="metric-value" id="bookings">0</span>
+              <span class="metric-label">Ready</span>
+            </div>
+          </section>
+
+          <div class="sidebar-note">
+            <strong>Purpose</strong>
+            <p>Replies to customers, qualifies serious buyers, and pushes them toward booking or payment.</p>
+          </div>
+        </aside>
+
+        <div class="bot-main">
+          <section class="topbar">
+            <div>
+              <p class="eyebrow" id="businessIndustry">Business profile</p>
+              <h2 id="businessNameHeading">Kampala Cleaning Services</h2>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-btn" id="resetDemoBtn" type="button">Reset</button>
+              <button class="primary-btn" id="exportLeadsBtn" type="button">Export CSV</button>
+            </div>
+          </section>
+
+          <section class="view active" id="chatView" aria-labelledby="chatTitle">
+            <div class="chat-layout">
+              <section class="chat-card">
+                <div class="section-header">
+                  <div>
+                    <p class="eyebrow">Customer view</p>
+                    <h3 id="chatTitle">Live sales conversation</h3>
+                  </div>
+                  <span class="status-pill" id="leadStatusPill">New lead</span>
+                </div>
+
+                <div class="chat-window" id="chatWindow" aria-live="polite"></div>
+
+                <div class="quick-actions" id="quickActions"></div>
+
+                <form class="message-form" id="messageForm">
+                  <input id="messageInput" type="text" autocomplete="off" placeholder="Customer message..." aria-label="Customer message">
+                  <button class="primary-btn" type="submit">Send</button>
+                </form>
+              </section>
+
+              <aside class="insight-panel">
+                <div class="section-header compact">
+                  <div>
+                    <p class="eyebrow">Owner view</p>
+                    <h3>Lead summary</h3>
+                  </div>
+                </div>
+
+                <dl class="lead-facts">
+                  <div>
+                    <dt>Name</dt>
+                    <dd id="leadName">Unknown</dd>
+                  </div>
+                  <div>
+                    <dt>Need</dt>
+                    <dd id="leadNeed">Not captured</dd>
+                  </div>
+                  <div>
+                    <dt>Timeframe</dt>
+                    <dd id="leadTimeframe">Not captured</dd>
+                  </div>
+                  <div>
+                    <dt>Budget</dt>
+                    <dd id="leadBudget">Not captured</dd>
+                  </div>
+                  <div>
+                    <dt>Contact</dt>
+                    <dd id="leadContact">Not captured</dd>
+                  </div>
+                </dl>
+
+                <div class="score-box">
+                  <span>Lead score</span>
+                  <strong id="leadScore">0</strong>
+                </div>
+
+                <label class="field-label" for="ownerNotes">Owner notes</label>
+                <textarea id="ownerNotes" rows="5" placeholder="Example: asked for price, wants today, send payment details."></textarea>
+
+                <button class="primary-btn full-width" id="saveLeadBtn" type="button">Save Lead</button>
+              </aside>
+            </div>
+          </section>
+
+          <section class="view" id="leadsView" aria-labelledby="leadsTitle">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Pipeline</p>
+                <h3 id="leadsTitle">Saved leads</h3>
+              </div>
+              <button class="secondary-btn" id="clearLeadsBtn" type="button">Clear Leads</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Need</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Contact</th>
+                    <th>Next action</th>
+                  </tr>
+                </thead>
+                <tbody id="leadsTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="view" id="setupView" aria-labelledby="setupTitle">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Bot brain</p>
+                <h3 id="setupTitle">Business setup</h3>
+              </div>
+              <button class="primary-btn" id="saveSettingsBtn" type="button">Save Setup</button>
+            </div>
+
+            <form class="setup-grid" id="settingsForm">
+              <label>
+                Business name
+                <input name="businessName" type="text">
+              </label>
+              <label>
+                Industry
+                <input name="industry" type="text">
+              </label>
+              <label>
+                Main offer
+                <input name="mainOffer" type="text">
+              </label>
+              <label>
+                Starting price
+                <input name="startingPrice" type="text">
+              </label>
+              <label>
+                Payment methods
+                <input name="paymentMethods" type="text">
+              </label>
+              <label>
+                Human handoff rule
+                <input name="handoffRule" type="text">
+              </label>
+              <label class="wide">
+                Packages or services
+                <textarea name="packages" rows="4"></textarea>
+              </label>
+              <label class="wide">
+                Common customer questions
+                <textarea name="faqs" rows="4"></textarea>
+              </label>
+              <label class="wide">
+                Common objections
+                <textarea name="objections" rows="4"></textarea>
+              </label>
+            </form>
+          </section>
+
+          <section class="view" id="scriptsView" aria-labelledby="scriptsTitle">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Sales assets</p>
+                <h3 id="scriptsTitle">Generated scripts</h3>
+              </div>
+              <button class="secondary-btn" id="copyScriptsBtn" type="button">Copy</button>
+            </div>
+            <pre class="script-output" id="scriptOutput"></pre>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>SIN AI Sales Bot</span>
+    <a href="#home">Back to top</a>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

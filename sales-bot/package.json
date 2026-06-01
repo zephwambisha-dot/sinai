@@ -1,0 +1,13 @@
+{
+  "name": "sin-ai-sales-bot",
+  "version": "0.2.0",
+  "private": true,
+  "description": "SIN AI Sales Bot website with optional backend OpenAI API and lead storage.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
