@@ -71,6 +71,7 @@ export function getSearchStatus() {
       openai: Boolean(process.env.OPENAI_API_KEY),
       gemini: Boolean(process.env.GEMINI_API_KEY),
       brave: Boolean(process.env.BRAVE_SEARCH_API_KEY),
+      bingFallback: true,
       duckduckgoFallback: true
     }
   };
@@ -223,6 +224,11 @@ async function getWebContext(body, provider) {
   } catch (error) {
     errors.push(`DuckDuckGo fallback: ${error.message}`);
   }
+  try {
+    return await searchWithBing(searchQuery, getRequestedResultCount(latestMessage));
+  } catch (error) {
+    errors.push(`Bing fallback: ${error.message}`);
+  }
   return `Internet search was requested, but live search failed. ${errors.join(" | ") || "No search provider is configured."}`;
 }
 
@@ -330,6 +336,24 @@ async function searchWithDuckDuckGo(query, requestedCount = 10) {
   return `DuckDuckGo fallback search results for "${query}". These are web snippets and must be verified before outreach:\n${formatted.join("\n\n")}`;
 }
 
+async function searchWithBing(query, requestedCount = 10) {
+  const params = new URLSearchParams({ q: query });
+  const apiResponse = await fetch(`https://www.bing.com/search?${params.toString()}`, {
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      "Accept": "text/html"
+    }
+  });
+  if (!apiResponse.ok) throw new Error(`Bing error: ${apiResponse.status}`);
+  const html = await apiResponse.text();
+  const results = parseBingResults(html).slice(0, requestedCount);
+  if (!results.length) return `Bing fallback search returned no results for "${query}".`;
+  const formatted = results.map((result, index) => (
+    `${index + 1}. ${result.title}\nURL: ${result.url}\nSnippet: ${result.snippet}`
+  ));
+  return `Bing fallback search results for "${query}". These are web snippets and must be verified before outreach:\n${formatted.join("\n\n")}`;
+}
+
 function parseDuckDuckGoResults(html) {
   const blocks = html.match(/<div class="result results_links[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g) || [];
   return blocks.map((block) => {
@@ -350,6 +374,16 @@ function parseDuckDuckGoLiteResults(html) {
     const url = unwrapDuckDuckGoUrl(decodeHtml(href));
     return { title, url, snippet };
   }).filter((result) => result.title && result.url);
+}
+
+function parseBingResults(html) {
+  const blocks = html.match(/<li class="b_algo"[\s\S]*?<\/li>/g) || [];
+  return blocks.map((block) => {
+    const href = block.match(/<h2[^>]*>[\s\S]*?<a[^>]+href="([^"]+)"/)?.[1] || "";
+    const title = stripHtml(block.match(/<h2[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/)?.[1] || "");
+    const snippet = stripHtml(block.match(/<p[^>]*>([\s\S]*?)<\/p>/)?.[1] || "");
+    return { title, url: decodeHtml(href), snippet };
+  }).filter((result) => result.title && result.url && /^https?:\/\//i.test(result.url));
 }
 
 function dedupeResults(results) {
