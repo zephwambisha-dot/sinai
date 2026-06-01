@@ -13,7 +13,7 @@ const leadsFile = join(dataDir, "leads.json");
 const port = Number(process.env.PORT || 8088);
 const aiProvider = (process.env.AI_PROVIDER || "openai").toLowerCase();
 const openAiModel = process.env.OPENAI_MODEL || "gpt-5.2";
-const geminiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",

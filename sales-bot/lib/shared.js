@@ -1,6 +1,6 @@
 const aiProvider = (process.env.AI_PROVIDER || "openai").toLowerCase();
 const openAiModel = process.env.OPENAI_MODEL || "gpt-5.2";
-const geminiModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 export async function createBotReply(body) {
   const provider = getActiveProvider();
