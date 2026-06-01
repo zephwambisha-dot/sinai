@@ -20,10 +20,11 @@ const defaultServerSettings = {
 
 export async function createBotReply(body) {
   const provider = getActiveProvider();
+  const requestSettings = getRequestSettings(body.settings);
   if (provider === "demo") {
     return {
       source: "demo",
-      reply: serverFallbackReply(body.message, body.settings, body.lead),
+      reply: serverFallbackReply(body.message, requestSettings, body.lead),
       nextStage: "qualify",
       actions: ["Set up API key", "Add master prompt", "Try another search"],
       leadPatch: {}
@@ -32,8 +33,8 @@ export async function createBotReply(body) {
 
   const webContext = await getWebContext(body, provider);
   const prompt = buildSalesPrompt(body, webContext);
-  if (provider === "gemini") return normalizeBotResult(await createGeminiReply(prompt));
-  return normalizeBotResult(await createOpenAiReply(prompt));
+  if (provider === "gemini") return normalizeBotResult(await createGeminiReply(prompt), requestSettings);
+  return normalizeBotResult(await createOpenAiReply(prompt), requestSettings);
 }
 
 export function getActiveProvider() {
@@ -93,17 +94,32 @@ async function createOpenAiReply(prompt) {
   return { source: "openai", ...JSON.parse(extractOutputText(data)) };
 }
 
-function normalizeBotResult(result) {
+function normalizeBotResult(result, settings = {}) {
   const actions = Array.isArray(result.actions) && result.actions.length
     ? result.actions.slice(0, 4)
     : ["Tell me more", "Show pricing", "Talk to owner"];
   return {
     ...result,
-    reply: result.reply || "I can help with that. What do you need most right now?",
+    reply: repairReplyForBusinessIdentity(result.reply || "I can help with that. What do you need most right now?", settings),
     nextStage: result.nextStage || "qualify",
     actions,
     leadPatch: result.leadPatch || {}
   };
+}
+
+function repairReplyForBusinessIdentity(reply, settings = {}) {
+  let fixed = String(reply || "");
+  const businessName = settings.businessName || "";
+  const mainOffer = settings.mainOffer || "";
+  if (businessName && !/\bsin ai\b/i.test(businessName)) {
+    fixed = fixed.replace(/\bSIN AI\b/g, businessName);
+  }
+  if (mainOffer && !/\bsales bots?\b/i.test(mainOffer)) {
+    fixed = fixed.replace(/\badvanced AI sales bots and automation systems\b/gi, mainOffer);
+    fixed = fixed.replace(/\bAI sales bots and automation systems\b/gi, mainOffer);
+    fixed = fixed.replace(/\bAI sales bots?\b/gi, mainOffer);
+  }
+  return fixed;
 }
 
 async function createGeminiReply(prompt) {
@@ -145,9 +161,9 @@ async function getWebContext(body, provider) {
 
   const searchQuery = buildSearchQuery(latestMessage, settings);
   try {
-    if (process.env.BRAVE_SEARCH_API_KEY) return searchWithBrave(searchQuery);
-    if (provider === "gemini" && process.env.GEMINI_API_KEY) return searchWithGemini(searchQuery, settings);
-    if (provider === "openai" && process.env.OPENAI_API_KEY) return searchWithOpenAi(searchQuery, settings);
+    if (process.env.BRAVE_SEARCH_API_KEY) return await searchWithBrave(searchQuery);
+    if (provider === "gemini" && process.env.GEMINI_API_KEY) return await searchWithGemini(searchQuery, settings);
+    if (provider === "openai" && process.env.OPENAI_API_KEY) return await searchWithOpenAi(searchQuery, settings);
   } catch (error) {
     return `Internet search was requested, but live search failed: ${error.message}`;
   }
@@ -256,6 +272,8 @@ Master instruction from the business owner. Treat this as the highest-priority b
 ${settings.masterPrompt || ""}
 
 Business profile:
+- Mandatory business name: ${settings.businessName || ""}
+- Mandatory answer to "what do you sell?": ${settings.mainOffer || ""}
 - Industry: ${settings.industry || ""}
 - Main offer: ${settings.mainOffer || ""}
 - Starting price: ${settings.startingPrice || ""}
