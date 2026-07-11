@@ -474,7 +474,7 @@ p { color: var(--muted); line-height: 1.65; }
   gap: 10px;
   justify-content: flex-end;
 }
-.social-placeholders span {
+.social-placeholders a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -486,6 +486,12 @@ p { color: var(--muted); line-height: 1.65; }
   background: rgba(255,255,255,.38);
   font-size: 13px;
   font-weight: 800;
+  text-decoration: none;
+}
+.social-placeholders a:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: rgba(255,255,255,.62);
 }
 
 .contact-section {
