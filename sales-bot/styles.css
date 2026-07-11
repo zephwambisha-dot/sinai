@@ -917,3 +917,51 @@ th {
     height: 380px;
   }
 }
+
+.floating-contact {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  background: rgba(12, 16, 24, 0.86);
+  box-shadow: 0 18px 50px rgba(0,0,0,.32);
+  backdrop-filter: blur(18px);
+}
+.floating-contact a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.floating-main {
+  padding: 0 16px;
+  color: #081018;
+  background: #f8d75c;
+}
+.floating-icon {
+  padding: 0 14px;
+  color: #f5f7fb;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16);
+}
+
+@media (max-width: 560px) {
+  .floating-contact {
+    right: 11px;
+    bottom: 11px;
+    max-width: calc(100% - 22px);
+  }
+  .floating-contact a { min-height: 40px; }
+  .floating-main { padding: 0 13px; }
+  .floating-icon { padding: 0 12px; }
+}
