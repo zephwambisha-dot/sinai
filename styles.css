@@ -212,6 +212,52 @@ p { color: var(--muted); line-height: 1.65; }
 }
 .service p, .benefit-list p, .process-grid p { margin-bottom: 0; }
 
+.packages-section .section-heading p {
+  max-width: 760px;
+  margin-bottom: 0;
+}
+.package-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.package-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.42);
+}
+.package-card.featured-package {
+  background: rgba(17,17,15,.055);
+  border-color: var(--line-strong);
+}
+.package-card span {
+  display: inline-flex;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.package-card p {
+  margin-bottom: 18px;
+}
+.package-link {
+  margin-top: auto;
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  width: fit-content;
+}
+.package-link:hover {
+  border-color: var(--ink);
+}
+
 .split-section {
   display: grid;
   grid-template-columns: .9fr 1.1fr;
@@ -399,6 +445,7 @@ p { color: var(--muted); line-height: 1.65; }
 @media (max-width: 880px) {
   .nav { display: none; }
   .service-grid, .split-section, .benefit-list, .process-grid, .case-study, .portfolio-grid { grid-template-columns: 1fr; }
+  .package-grid { grid-template-columns: repeat(2, 1fr); }
   .work-card { align-items: flex-start; flex-direction: column; }
   .case-content { padding: 4px; }
   .social-card { grid-template-columns: 1fr; }
@@ -411,5 +458,6 @@ p { color: var(--muted); line-height: 1.65; }
   .nav-cta { padding: 11px 12px; }
   .hero { padding-top: 40px; }
   .button { width: 100%; }
+  .package-grid { grid-template-columns: 1fr; }
   .section-heading { flex-direction: column; }
 }
