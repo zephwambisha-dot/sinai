@@ -168,6 +168,24 @@ p { color: var(--muted); line-height: 1.65; }
   backdrop-filter: blur(18px);
 }
 
+.about-section {
+  display: grid;
+  grid-template-columns: .9fr 1.1fr;
+  gap: 28px;
+  align-items: start;
+}
+.about-section h2 {
+  margin-bottom: 0;
+}
+.about-copy {
+  display: grid;
+  gap: 14px;
+}
+.about-copy p {
+  margin-bottom: 0;
+  font-size: 17px;
+}
+
 .section-heading {
   display: flex;
   align-items: flex-start;
@@ -444,7 +462,7 @@ p { color: var(--muted); line-height: 1.65; }
 
 @media (max-width: 880px) {
   .nav { display: none; }
-  .service-grid, .split-section, .benefit-list, .process-grid, .case-study, .portfolio-grid { grid-template-columns: 1fr; }
+  .about-section, .service-grid, .split-section, .benefit-list, .process-grid, .case-study, .portfolio-grid { grid-template-columns: 1fr; }
   .package-grid { grid-template-columns: repeat(2, 1fr); }
   .work-card { align-items: flex-start; flex-direction: column; }
   .case-content { padding: 4px; }
