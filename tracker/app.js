@@ -265,6 +265,21 @@ function statusProgress(status) {
   return Math.round(((index + 1) / stages.length) * 100);
 }
 
+function renderStatusSteps(currentIndex) {
+  return stages.map((stage, index) => {
+    const state = index < currentIndex ? "done" : index === currentIndex ? "current" : "pending";
+    return `
+      <li class="${state}">
+        <span class="step-icon" aria-hidden="true"></span>
+        <span class="step-copy">
+          <span class="step-label">${safe(stage)}</span>
+          <span class="step-state">${state === "done" ? "Complete" : state === "current" ? "Current stage" : "Pending"}</span>
+        </span>
+      </li>
+    `;
+  }).join("");
+}
+
 function renderLoading() {
   result.classList.remove("hidden");
   result.innerHTML = `<h2>Checking status...</h2><p>Please wait a moment.</p>`;
@@ -352,11 +367,7 @@ function renderOrder(order) {
     <div class="progress">
       <div class="progress-track"><div class="progress-bar" style="width:${progress}%"></div></div>
       <ul class="steps">
-        ${stages.map((stage, index) => {
-          const className = index < currentIndex ? "done" : index === currentIndex ? "current" : "";
-          const icon = index < currentIndex ? "OK" : index === currentIndex ? "NOW" : "";
-          return `<li class="${className}"><span class="step-icon" aria-hidden="true">${icon}</span><span>${safe(stage)}</span></li>`;
-        }).join("")}
+        ${renderStatusSteps(currentIndex)}
       </ul>
     </div>
   `;

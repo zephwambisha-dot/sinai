@@ -236,38 +236,103 @@ button:hover, .whatsapp:hover { transform: translateY(-1px); box-shadow: 0 14px 
 .meta span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 5px; }
 .meta strong { color: var(--ink); }
 
-.progress { margin-top: 18px; }
-.progress-track { height: 9px; background: rgba(17,17,15,.09); border-radius: 99px; overflow: hidden; }
-.progress-bar { height: 100%; background: linear-gradient(90deg, #11110f, #766b5c); border-radius: 99px; }
-.steps { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.progress { margin-top: 20px; }
+.progress-track {
+  height: 8px;
+  background: rgba(17,17,15,.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #11110f, #5c6b61);
+  border-radius: 99px;
+}
+.steps {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
 .steps li {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
   color: var(--muted);
+  padding: 10px;
+  border: 1px solid rgba(17,17,15,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.32);
 }
 .step-icon {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
-  border: 1px solid var(--line-strong);
+  border: 1.5px solid var(--line-strong);
   border-radius: 50%;
-  font-size: 13px;
-  line-height: 1;
+  background: rgba(255,255,255,.62);
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.55);
 }
-.steps li.done { color: var(--success); }
+.step-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.step-label {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.step-state {
+  color: var(--muted-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.steps li.done {
+  border-color: rgba(24,99,59,.2);
+  background: rgba(24,99,59,.06);
+}
 .steps li.done .step-icon {
-  color: #fffaf0;
   background: var(--success);
   border-color: var(--success);
+  box-shadow: 0 8px 18px rgba(24,99,59,.18);
 }
-.steps li.current { color: var(--ink); font-weight: 800; }
+.steps li.done .step-icon::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fffaf0;
+  border-bottom: 2px solid #fffaf0;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.steps li.done .step-state { color: var(--success); }
+.steps li.current {
+  border-color: rgba(17,17,15,.22);
+  background: rgba(17,17,15,.04);
+}
 .steps li.current .step-icon {
-  color: #fffaf0;
   background: var(--ink);
   border-color: var(--ink);
+  box-shadow: 0 10px 22px rgba(17,17,15,.22);
+}
+.steps li.current .step-icon::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fffaf0;
+}
+.steps li.current .step-state {
+  color: var(--ink);
+  font-weight: 800;
 }
 .error { color: var(--danger); }
 
@@ -355,6 +420,7 @@ button:hover, .whatsapp:hover { transform: translateY(-1px); box-shadow: 0 14px 
   h1 { letter-spacing: -.055em; }
   .search-row, .contact-card { flex-direction: column; align-items: stretch; }
   .meta-grid, .process-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
   .process-grid article { min-height: auto; }
   .process-grid span { margin-bottom: 28px; }
   .floating-contact {
