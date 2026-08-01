@@ -1,22 +1,24 @@
-const SHEET_ID = "1_zPyjHCP6wDJJdMo-4VVguyTWs4JLJSbntwF8G6Hb3U";
+const SHEET_ID = "1xSV8uh4wxp2LXQav0ZV34lAF2ttp48lpK97OSJc7yB4";
 const SHEET_GID = "0";
 const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
-const SHEET_JSON_URL = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`;
+const SHEET_JSON_URL = `https://opensheet.elk.sh/${SHEET_ID}/Tracker`;
 
 const stages = [
-  "Brief Received",
-  "Payment Pending",
+  "Not Started",
   "Paid",
-  "In Queue",
-  "Script/Plan Ready",
-  "Image Production",
-  "Video Production",
-  "Editing",
-  "First Preview Sent",
-  "Revision",
-  "Delivered",
-  "Completed"
+  "In Progress",
+  "Preview sent",
+  "Delivered"
 ];
+
+const statusAliases = {
+  "NOT STARTED": "Not Started",
+  "PAID": "Paid",
+  "WORKING ON IT": "In Progress",
+  "IN PROGRESS": "In Progress",
+  "PREVIEW SENT": "Preview sent",
+  "DELIVERED": "Delivered"
+};
 
 const input = document.querySelector("#orderId");
 const button = document.querySelector("#checkBtn");
@@ -100,15 +102,15 @@ const headerAliases = {
   clientName: ["Client name", "Client", "Customer name", "Customer"],
   country: ["Country", "Location"],
   phoneWhatsapp: ["Phone/WhatsApp", "WhatsApp", "Whatsapp number", "Phone", "Phone number", "Contact", "Contact number"],
-  businessName: ["Business name", "Business", "Company", "Company name", "Brand"],
+  businessName: ["Project name", "Project", "Business name", "Business", "Company", "Company name", "Brand"],
   videoLength: ["Video length", "Length", "Duration"],
-  amount: ["Amount", "Price", "Paid amount", "Total"],
+  amount: ["Amount paid", "Amount", "Price", "Paid amount", "Total"],
   paymentStatus: ["Payment status", "Payment", "Paid?"],
   datePaid: ["Date paid", "Paid date", "Payment date"],
   deadline: ["Deadline", "Due date"],
   status: ["Current status", "Status", "Project status"],
   queueNumber: ["Queue number", "Queue", "Queue no"],
-  estimatedDelivery: ["Estimated delivery", "Delivery estimate", "ETA"],
+  estimatedDelivery: ["Estimated delivery time", "Estimated delivery", "Delivery estimate", "ETA"],
   previewLink: ["Preview link", "Preview"],
   finalLink: ["Final delivery link", "Final link", "Delivery link", "Final video"],
   revisionUsed: ["Revision used?", "Revision used", "Revision"],
@@ -258,7 +260,7 @@ function findOrder(query) {
 }
 
 function statusProgress(status) {
-  const index = stages.indexOf(status);
+  const index = stages.indexOf(statusAliases[normalize(status)] || status);
   if (index === -1) return 0;
   return Math.round(((index + 1) / stages.length) * 100);
 }
@@ -268,7 +270,7 @@ function renderLoading() {
   result.innerHTML = `<h2>Checking status...</h2><p>Please wait a moment.</p>`;
 }
 
-function renderOrder(order) {
+function renderOrderLegacy(order) {
   const status = display(order.status, "Status pending");
   const progress = statusProgress(status);
   const currentIndex = stages.indexOf(status);
@@ -315,11 +317,56 @@ function renderOrder(order) {
   `;
 }
 
-function renderError() {
+function renderErrorLegacy() {
   result.classList.remove("hidden");
   result.innerHTML = `
     <h2 class="error">Order not found</h2>
     <p>Please check your Order ID and try again. If the issue continues, contact SIN AI support.</p>
+    ${sheetLoadError ? `<p class="sheet-warning">Sheet sync warning: ${safe(sheetLoadError)}</p>` : ""}
+  `;
+}
+
+function renderOrder(order) {
+  const status = display(order.status, "Status pending");
+  const progress = statusProgress(status);
+  const currentIndex = stages.indexOf(statusAliases[normalize(status)] || status);
+
+  result.classList.remove("hidden");
+  result.innerHTML = `
+    <div class="status-header">
+      <div>
+        <h2>${safe(display(order.businessName, "SIN AI project"))}</h2>
+        <p>Receipt number: <strong>${safe(order.orderId)}</strong></p>
+      </div>
+      <div class="status-pill">${safe(status)}</div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta"><span>Receipt number</span><strong>${safe(order.orderId)}</strong></div>
+      <div class="meta"><span>Project name</span><strong>${safe(display(order.businessName))}</strong></div>
+      <div class="meta"><span>Amount paid</span><strong>${safe(display(order.amount))}</strong></div>
+      <div class="meta"><span>Status</span><strong>${safe(status)}</strong></div>
+      <div class="meta"><span>Estimated delivery time</span><strong>${safe(display(order.estimatedDelivery))}</strong></div>
+    </div>
+
+    <div class="progress">
+      <div class="progress-track"><div class="progress-bar" style="width:${progress}%"></div></div>
+      <ul class="steps">
+        ${stages.map((stage, index) => {
+          const className = index < currentIndex ? "done" : index === currentIndex ? "current" : "";
+          const icon = index < currentIndex ? "OK" : index === currentIndex ? "NOW" : "";
+          return `<li class="${className}"><span class="step-icon" aria-hidden="true">${icon}</span><span>${safe(stage)}</span></li>`;
+        }).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+function renderError() {
+  result.classList.remove("hidden");
+  result.innerHTML = `
+    <h2 class="error">Order not found</h2>
+    <p>Please check your receipt number and try again. If the issue continues, contact SIN AI support.</p>
     ${sheetLoadError ? `<p class="sheet-warning">Sheet sync warning: ${safe(sheetLoadError)}</p>` : ""}
   `;
 }
