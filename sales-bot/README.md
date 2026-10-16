@@ -60,29 +60,41 @@ Optional:
 - `BRAVE_SEARCH_API_KEY` enables Brave Search as the dedicated search provider. Without it, the app tries the active AI provider's native web search where available.
 - `HOT_LEAD_WEBHOOK_URL` sends hot leads to another automation/webhook endpoint.
 
-## PawaPay Callback Receiver
+## PawaPay Checkout and Callbacks
 
 The SIN AI marketing site and project tracker are static GitHub Pages files; they cannot receive PawaPay server-to-server POST requests. This repo includes a Vercel API callback receiver at `api/pawapay-callback.js`.
 
-The receiver verifies PawaPay's signed callback headers against PawaPay's public key endpoint, checks the signed request body digest and signature time window, and stores only minimal transaction fields. It does not store phone numbers or raw callback bodies. Duplicate callbacks upsert the same operation and transaction ID.
+The customer checkout uses PawaPay's hosted Payment Page. Staff create a payment link only after a quote is approved; the amount and currency are fixed, while PawaPay presents the countries and mobile money options currently enabled on the account. A PawaPay session is created when a customer opens the link, so the provider's 15-minute session limit does not shorten the quote link. Quote links expire after 30 days.
+
+The callback receiver verifies PawaPay's signed callback headers against PawaPay's public key endpoint, checks the signed request body digest and signature time window, and stores only minimal transaction fields. It does not store phone numbers or raw callback bodies. Duplicate callbacks upsert the same operation and transaction ID. A verified deposit callback also updates the matching quote payment status.
 
 ### Setup
 
 1. Deploy `sales-bot/` as a Vercel project (set the Vercel project Root Directory to `sales-bot`). The public website can remain on GitHub Pages.
-2. Create a Supabase project, open its SQL Editor, and run `pawapay-callbacks.sql`.
+2. In the existing Supabase project, open its SQL Editor and run both `pawapay-callbacks.sql` and `pawapay-payment-links.sql`.
 3. In Vercel Project Settings → Environment Variables, add:
-   - `PAWAPAY_ENV` = `sandbox` (use `production` only after moving to the live PawaPay account)
-   - `PAWAPAY_API_TOKEN` = the token for that same PawaPay environment
+   - `PAWAPAY_ENV` = `sandbox` while testing, or `production` for the approved live account
+   - `PAWAPAY_API_TOKEN` = token from that same PawaPay environment
    - `SUPABASE_URL` = the Supabase project URL
    - `SUPABASE_SERVICE_ROLE_KEY` = the Supabase service-role key, marked sensitive
+   - `PAYMENT_LINK_ADMIN_TOKEN` = a long random staff-only key; do not reuse the PawaPay token
+   - `PAYMENT_BASE_URL` = the production Vercel URL for this checkout, for example `https://your-project.vercel.app`
 4. Redeploy the Vercel project.
-5. In the matching PawaPay dashboard, enable **signed callbacks**. Use the same deployed URL for the callback types you need:
+5. In the matching PawaPay dashboard, enable **signed callbacks** for deposits. Use this URL:
 
    `https://<your-vercel-project>.vercel.app/api/pawapay-callback`
 
-6. Test with PawaPay Sandbox first. The receiver returns HTTP 200 only after signature verification and durable storage succeed, so PawaPay can retry temporary failures.
+6. Test the full flow in PawaPay Sandbox first. The receiver returns HTTP 200 only after signature verification and durable storage succeed, so PawaPay can retry temporary failures.
 
-Never place the PawaPay token or Supabase service-role key in browser JavaScript, GitHub, or this chat. The receiver records callback status but does not yet initiate customer payments or automatically alter the existing Google Sheets project tracker.
+### Create and send an approved quote link
+
+1. Open `/payment-admin` on the Vercel site.
+2. Enter the staff-only key and the approved quote reference, description, amount, and currency.
+3. Copy the generated `/payment.html?token=...` URL and send it to the customer.
+4. The customer reviews the fixed total, continues to PawaPay, chooses from the enabled options, and confirms the payment with their own mobile money provider.
+5. A verified callback updates the status shown on the payment page. You can also confirm the final transaction in the PawaPay dashboard.
+
+Never place the PawaPay token, Supabase service-role key, or staff-only key in GitHub, browser code, or chat. The live site should use the production PawaPay token only after the Sandbox flow has been verified. The existing Google Sheets project tracker is not changed automatically by a payment; project/order tracking remains a separate workflow.
 
 ## How To Customize
 

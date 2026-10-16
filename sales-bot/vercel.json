@@ -2,6 +2,11 @@
   "version": 2,
   "builds": [
     { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "payment.html", "use": "@vercel/static" },
+    { "src": "payment.css", "use": "@vercel/static" },
+    { "src": "payment.js", "use": "@vercel/static" },
+    { "src": "payment-admin.html", "use": "@vercel/static" },
+    { "src": "payment-admin.js", "use": "@vercel/static" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "styles.css", "use": "@vercel/static" },
     { "src": "app.js", "use": "@vercel/static" },
@@ -9,6 +14,11 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/payment.css", "dest": "/payment.css" },
+    { "src": "/payment.js", "dest": "/payment.js" },
+    { "src": "/payment-admin.js", "dest": "/payment-admin.js" },
+    { "src": "/payment-admin", "dest": "/payment-admin.html" },
+    { "src": "/payment.html", "dest": "/payment.html" },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
     { "src": "/styles.css", "dest": "/styles.css" },
     { "src": "/app.js", "dest": "/app.js" },
