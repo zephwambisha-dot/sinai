@@ -13,5 +13,6 @@ create table if not exists public.pawapay_callbacks (
 
 alter table public.pawapay_callbacks enable row level security;
 
--- No browser-facing policies are added. Only the server's Supabase service-role
--- key can write or read this table; never expose that key in frontend code.
+-- Keep browser roles out; the server uses its private Supabase service-role key.
+revoke all on table public.pawapay_callbacks from anon, authenticated;
+grant select, insert, update on table public.pawapay_callbacks to service_role;
