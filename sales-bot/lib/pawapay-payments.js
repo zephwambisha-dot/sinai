@@ -84,8 +84,7 @@ export function normalizePawapayPhone(input, countryPrefix) {
   if (digits.startsWith("00")) digits = digits.slice(2);
   if (!prefix) throw new Error("This country is missing its mobile country code.");
   if (!digits.startsWith(prefix)) {
-    if (digits.startsWith("0")) digits = digits.slice(1);
-    digits = `${prefix}${digits}`;
+    throw new Error(`Enter the full international number starting with +${prefix}; do not start with 0.`);
   }
   if (digits.length < 8 || digits.length > 15 || !digits.startsWith(prefix) || digits.startsWith("0")) {
     throw new Error("Enter a valid phone number for the selected country.");
