@@ -52,7 +52,7 @@ test("starts a payment page from customer country, phone, and amount inputs", as
     await handler({
       method: "POST",
       headers: { origin: "https://checkout.example.test", host: "checkout.example.test", "x-forwarded-for": crypto.randomUUID() },
-      body: { country: "UGA", currency: "UGX", phoneNumber: "0772 123 456", amount: "1500" }
+      body: { country: "UGA", phoneNumber: "+256 772 123 456", amount: "1500" }
     }, response);
     assert.equal(response.code, 201);
     assert.equal(response.body.paymentUrl, "https://paywith.pawapay.io/session");
@@ -93,7 +93,7 @@ test("rejects invalid phone numbers without creating a payment", async () => {
     await handler({
       method: "POST",
       headers: { origin: "https://checkout.example.test", host: "checkout.example.test", "x-forwarded-for": crypto.randomUUID() },
-      body: { country: "UGA", currency: "UGX", phoneNumber: "abc", amount: "1500" }
+      body: { country: "UGA", phoneNumber: "abc", amount: "1500" }
     }, response);
     assert.equal(response.code, 400);
     assert.match(response.body.error, /phone/i);
@@ -117,7 +117,7 @@ test("rejects cross-origin form posts before contacting providers", async () => 
     await handler({
       method: "POST",
       headers: { origin: "https://attacker.example", host: "checkout.example.test", "x-forwarded-for": crypto.randomUUID() },
-      body: { country: "UGA", currency: "UGX", phoneNumber: "0772123456", amount: "1000" }
+      body: { country: "UGA", phoneNumber: "+256772123456", amount: "1000" }
     }, response);
     assert.equal(response.code, 403);
     assert.equal(contactedProvider, false);
