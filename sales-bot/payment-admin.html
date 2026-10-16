@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Create a SIN AI payment link</title>
+  <link rel="stylesheet" href="/payment.css">
+  <script src="/payment-admin.js" defer></script>
+</head>
+<body>
+  <main class="checkout-shell">
+    <a class="brand" href="https://sinaigo.com/"><span class="brand-mark">S</span><span>SIN AI</span></a>
+    <section class="checkout-card" aria-labelledby="admin-title">
+      <p class="eyebrow">Staff tool</p>
+      <h1 id="admin-title">Create a quote payment link</h1>
+      <p class="intro">Use this after the customer approves a quote. The amount and currency are locked to that quote.</p>
+      <form id="link-form">
+        <label for="admin-token">Staff access key</label>
+        <input id="admin-token" type="password" autocomplete="off" required placeholder="Paste the Vercel staff key">
+        <label for="reference">Quote or invoice reference</label>
+        <input id="reference" required maxlength="80" placeholder="For example: SIN-2026-014">
+        <label for="reason">What the customer is paying for</label>
+        <input id="reason" required maxlength="50" placeholder="For example: AI video package">
+        <div class="form-row">
+          <div><label for="amount">Approved amount</label><input id="amount" inputmode="decimal" required placeholder="50000"></div>
+          <div><label for="currency">Currency</label><input id="currency" maxlength="3" required value="UGX" placeholder="UGX"></div>
+        </div>
+        <button class="pay-button" id="create-button" type="submit">Create payment link</button>
+      </form>
+      <div id="admin-result" class="notice" role="status" aria-live="polite" hidden></div>
+    </section>
+  </main>
+</body>
+</html>

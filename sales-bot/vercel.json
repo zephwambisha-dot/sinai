@@ -2,17 +2,30 @@
   "version": 2,
   "builds": [
     { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "styles.css", "use": "@vercel/static" },
-    { "src": "app.js", "use": "@vercel/static" },
+    { "src": "payment.html", "use": "@vercel/static" },
+    { "src": "payment.css", "use": "@vercel/static" },
+    { "src": "payment.js", "use": "@vercel/static" },
+    { "src": "payment-admin.html", "use": "@vercel/static" },
+    { "src": "payment-admin.js", "use": "@vercel/static" },
+    { "src": "pay.html", "use": "@vercel/static" },
+    { "src": "pay.js", "use": "@vercel/static" },
+    { "src": "payment-return.html", "use": "@vercel/static" },
+    { "src": "payment-return.js", "use": "@vercel/static" },
     { "src": "assets/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/payment.css", "dest": "/payment.css" },
+    { "src": "/payment.js", "dest": "/payment.js" },
+    { "src": "/payment-admin.js", "dest": "/payment-admin.js" },
+    { "src": "/payment-admin", "dest": "/payment-admin.html" },
+    { "src": "/pay.js", "dest": "/pay.js" },
+    { "src": "/pay", "dest": "/pay.html" },
+    { "src": "/payment-return.js", "dest": "/payment-return.js" },
+    { "src": "/payment-return", "dest": "/payment-return.html" },
+    { "src": "/payment.html", "dest": "/payment.html" },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/styles.css", "dest": "/styles.css" },
-    { "src": "/app.js", "dest": "/app.js" },
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/", "dest": "/pay.html" },
+    { "src": "/(.*)", "dest": "/pay.html" }
   ]
 }

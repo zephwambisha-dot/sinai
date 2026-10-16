@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Pay SIN AI | Secure checkout</title>
+  <link rel="stylesheet" href="/payment.css">
+  <script src="/payment.js" defer></script>
+</head>
+<body>
+  <main class="checkout-shell">
+    <a class="brand" href="https://sinaigo.com/" aria-label="SIN AI home"><span class="brand-mark">S</span><span>SIN AI</span></a>
+    <section class="checkout-card" aria-labelledby="checkout-title">
+      <p class="eyebrow">Secure mobile money checkout</p>
+      <h1 id="checkout-title">Complete your payment</h1>
+      <p class="intro">Review the approved quote, then continue to PawaPay to choose a supported country and mobile money provider.</p>
+      <div id="checkout-state" class="notice" role="status" aria-live="polite">Loading payment details…</div>
+      <dl id="quote-details" class="quote-details" hidden>
+        <div><dt>For</dt><dd id="quote-reason"></dd></div>
+        <div><dt>Amount</dt><dd id="quote-amount"></dd></div>
+        <div><dt>Payment status</dt><dd id="quote-status">Awaiting payment</dd></div>
+      </dl>
+      <button id="pay-button" class="pay-button" type="button" disabled>Continue to PawaPay</button>
+      <p class="secure-note">Your mobile money PIN is entered only in your provider’s secure prompt. SIN AI never asks you to send it by message.</p>
+      <a class="help-link" href="https://sinaigo.com/">Questions? Contact SIN AI</a>
+    </section>
+    <footer>Payments are processed by PawaPay using the options enabled for this merchant account.</footer>
+  </main>
+</body>
+</html>
