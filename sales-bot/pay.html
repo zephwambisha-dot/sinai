@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Pay an agreed SIN AI quote</title>
+  <title>Pay SIN AI | Mobile money checkout</title>
   <link rel="stylesheet" href="/payment.css">
   <script src="/pay.js" defer></script>
 </head>
@@ -13,31 +13,26 @@
     <a class="brand" href="https://sinaigo.com/"><span class="brand-mark">S</span><span>SIN AI</span></a>
     <section class="checkout-card" aria-labelledby="pay-title">
       <p class="eyebrow">Secure mobile money checkout</p>
-      <h1 id="pay-title">Pay your agreed quote</h1>
-      <p class="intro">Enter the exact amount and currency SIN AI quoted you, along with your quote or invoice reference. You will review the total before continuing to PawaPay.</p>
+      <h1 id="pay-title">Pay SIN AI</h1>
+      <p class="intro">Choose your country, enter the mobile money number and the amount SIN AI quoted you, then continue to PawaPay to approve the payment prompt.</p>
       <form id="customer-payment-form">
-        <label for="reference">Quote or invoice reference</label>
-        <input id="reference" name="reference" required maxlength="80" autocomplete="off" placeholder="For example: SIN-2026-014">
-        <label for="reason">What are you paying for?</label>
-        <input id="reason" name="reason" required maxlength="50" autocomplete="off" placeholder="For example: 30-second AI video advert">
-        <div class="form-row">
-          <div>
-            <label for="amount">Agreed amount</label>
-            <input id="amount" name="amount" inputmode="decimal" type="number" min="0.001" step="0.001" required placeholder="Enter the quoted amount">
-          </div>
-          <div>
-            <label for="currency">Currency</label>
-            <select id="currency" name="currency" required disabled>
-              <option value="">Loading…</option>
-            </select>
-          </div>
+        <label for="country">Country</label>
+        <select id="country" name="country" required disabled>
+          <option value="">Loading countries…</option>
+        </select>
+        <label for="phone-number">Mobile money phone number</label>
+        <input id="phone-number" name="phoneNumber" type="tel" inputmode="tel" autocomplete="tel" required placeholder="Enter your mobile money number">
+        <div class="amount-label-row">
+          <label for="amount">Amount quoted by SIN AI</label>
+          <span id="currency-label" aria-live="polite"></span>
         </div>
+        <input id="amount" name="amount" inputmode="decimal" type="number" min="0.01" step="0.01" required placeholder="Enter the agreed amount">
         <div class="honeypot" aria-hidden="true">
           <label for="website">Leave this field empty</label>
           <input id="website" name="website" tabindex="-1" autocomplete="off">
         </div>
-        <p class="secure-note">Use the amount SIN AI already confirmed with you. SIN AI will match the payment to your reference before starting the work.</p>
-        <button class="pay-button" id="prepare-button" type="submit" disabled>Review payment</button>
+        <p class="secure-note">Enter the exact amount SIN AI quoted. After you approve the prompt, send the PawaPay transaction message to our team. We verify each payment before starting work.</p>
+        <button class="pay-button" id="prepare-button" type="submit" disabled>Pay</button>
       </form>
       <div id="pay-entry-notice" class="notice" role="status" aria-live="polite" hidden></div>
       <a class="help-link" href="https://wa.me/256765821430?text=Hello%20SIN%20AI%2C%20I%20need%20help%20with%20a%20payment.">Need help? Contact SIN AI</a>

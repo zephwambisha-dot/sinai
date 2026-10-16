@@ -1,4 +1,4 @@
-import { getOperationalDepositCurrencies, pawapayRequest } from "../lib/pawapay-payments.js";
+import { getDepositPaymentOptions, pawapayRequest } from "../lib/pawapay-payments.js";
 
 function reply(response, code, body) {
   response.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
@@ -20,7 +20,7 @@ export default async function handler(request, response) {
       }));
       return reply(response, 502, { error: "Payment currencies are temporarily unavailable." });
     }
-    return reply(response, 200, { currencies: getOperationalDepositCurrencies(config) });
+    return reply(response, 200, { countries: getDepositPaymentOptions(config) });
   } catch (error) {
     console.error("PawaPay currency lookup failed:", error.message);
     return reply(response, 503, { error: "Payment currencies are temporarily unavailable." });

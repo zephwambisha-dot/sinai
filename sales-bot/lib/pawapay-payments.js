@@ -34,15 +34,7 @@ export function validateQuote(body = {}) {
 }
 
 export function getOperationalDepositCurrencies(config = {}) {
-  const currencies = new Set();
-  for (const country of config.countries || []) {
-    for (const provider of country.providers || []) {
-      for (const item of provider.currencies || []) {
-        if (depositOperation(item.operationTypes)?.status === "OPERATIONAL") currencies.add(item.currency);
-      }
-    }
-  }
-  return [...currencies].sort();
+  return [...new Set(getDepositPaymentOptions(config).map(option => option.currency))].sort();
 }
 
 function depositOperation(operationTypes) {
@@ -53,8 +45,57 @@ function depositOperation(operationTypes) {
   return operationTypes?.DEPOSIT || {};
 }
 
+export function getDepositPaymentOptions(config = {}) {
+  const options = new Map();
+  for (const country of config.countries || []) {
+    const countryCode = String(country.country || "").toUpperCase();
+    const name = typeof country.displayName === "string"
+      ? country.displayName
+      : country.displayName?.en || countryCode;
+    for (const provider of country.providers || []) {
+      for (const item of provider.currencies || []) {
+        const operation = depositOperation(item.operationTypes);
+        if (operation.status !== "OPERATIONAL" || !/^[A-Z]{3}$/.test(item.currency || "")) continue;
+        const key = `${countryCode}:${item.currency}`;
+        const current = options.get(key) || {
+          country: countryCode,
+          name,
+          prefix: String(country.prefix || "").replace(/\D/g, ""),
+          currency: item.currency,
+          minTransactionLimit: Number(operation.minTransactionLimit || 0),
+          maxTransactionLimit: Number(operation.maxTransactionLimit || Number.POSITIVE_INFINITY),
+          decimals: operation.decimalsInAmount === "NONE" ? 0 : Number(operation.decimalsInAmount || 3)
+        };
+        current.minTransactionLimit = Math.min(current.minTransactionLimit, Number(operation.minTransactionLimit || 0));
+        current.maxTransactionLimit = Math.max(current.maxTransactionLimit, Number(operation.maxTransactionLimit || Number.POSITIVE_INFINITY));
+        if (operation.decimalsInAmount !== "NONE") current.decimals = Math.max(current.decimals, Number(operation.decimalsInAmount || 3));
+        options.set(key, current);
+      }
+    }
+  }
+  return [...options.values()].sort((a, b) => a.name.localeCompare(b.name) || a.currency.localeCompare(b.currency));
+}
+
+export function normalizePawapayPhone(input, countryPrefix) {
+  const raw = String(input || "").trim();
+  if (!/^[+\d\s().-]+$/.test(raw)) throw new Error("Enter a valid mobile money phone number.");
+  let digits = raw.replace(/\D/g, "");
+  const prefix = String(countryPrefix || "").replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (!prefix) throw new Error("This country is missing its mobile country code.");
+  if (!digits.startsWith(prefix)) {
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    digits = `${prefix}${digits}`;
+  }
+  if (digits.length < 8 || digits.length > 15 || !digits.startsWith(prefix) || digits.startsWith("0")) {
+    throw new Error("Enter a valid phone number for the selected country.");
+  }
+  return digits;
+}
+
 export function supportsDepositQuote(config = {}, quote) {
   return (config.countries || []).some(country =>
+    (!quote.country || country.country === quote.country) &&
     (country.providers || []).some(provider =>
       (provider.currencies || []).some(item =>
         item.currency === quote.currency &&
