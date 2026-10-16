@@ -212,6 +212,23 @@ export async function persistPawaPayCallback(record) {
     const detail = (await response.text()).slice(0, 300);
     throw new Error(`Callback storage failed (${response.status}): ${detail}`);
   }
+
+  if (record.operation_type === "DEPOSIT") {
+    const paymentResponse = await fetch(`${baseUrl}/rest/v1/pawapay_payment_links?deposit_id=eq.${encodeURIComponent(record.transaction_id)}`, {
+      method: "PATCH",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        provider_status: record.status,
+        status: record.status === "COMPLETED" ? "PAID" : ["ACCEPTED", "SUBMITTED"].includes(record.status) ? "PROCESSING" : "OPEN",
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!paymentResponse.ok) throw new Error(`Payment status update failed (${paymentResponse.status})`);
+  }
 }
 
 export { parseStatusAndId, readRawBody };
