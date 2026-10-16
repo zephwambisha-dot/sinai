@@ -32,10 +32,10 @@ function updateCountryDetails() {
   const selected = countryDirectory.find(item => item.code === country.value);
   submitButton.disabled = !selected;
   if (selected) {
-    phoneNumber.placeholder = "+" + selected.prefix + " then your number";
-    phoneHint.textContent = "Enter the full number with country code first. Example: +256 772 123 456. Do not start with 0.";
+    phoneNumber.placeholder = selected.prefix + " then your number";
+    phoneHint.textContent = "Enter the full number with country code first. Example: 256 772 123 456. Do not start with 0 or add +.";
   } else {
-    phoneNumber.placeholder = "+country code, then your number";
+    phoneNumber.placeholder = "country code, then your number";
   }
 }
 
