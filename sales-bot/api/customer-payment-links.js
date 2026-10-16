@@ -45,28 +45,39 @@ export default async function handler(request, response) {
   if (String(request.body?.website || "").trim()) return reply(response, 400, { error: "Please check the payment details and try again." });
   if (rateLimited(request)) return reply(response, 429, { error: "Too many attempts. Wait a few minutes and try again." });
 
-  let quote;
-  try {
-    const amountQuote = validateQuote({
-      reference: "SIN-PAYMENT",
-      reason: "SIN AI services",
-      amount: request.body?.amount,
-      currency: request.body?.currency
-    });
-    quote = { ...amountQuote, country: String(request.body?.country || "").toUpperCase() };
-    if (!/^[A-Z]{3}$/.test(quote.country)) throw new Error("Choose your country.");
-  } catch (error) {
-    return reply(response, 400, { error: error.message });
-  }
+  const country = String(request.body?.country || "").toUpperCase();
+  if (!/^[A-Z]{3}$/.test(country)) return reply(response, 400, { error: "Choose your country." });
 
   try {
     const { response: configResponse, data: config } = await pawapayRequest("/v2/active-conf?operationType=DEPOSIT");
     if (!configResponse.ok || !Array.isArray(config.countries)) {
       return reply(response, 502, { error: "Could not confirm the available payment options. Please try again." });
     }
-    const option = getDepositPaymentOptions(config).find(item => item.country === quote.country && item.currency === quote.currency);
-    if (!option || Number(quote.amount) < option.minTransactionLimit || Number(quote.amount) > option.maxTransactionLimit) {
-      return reply(response, 422, { error: "That amount or currency is not available for deposits. Check the quote with SIN AI." });
+    const countryOptions = getDepositPaymentOptions(config).filter(item => item.country === country);
+    const localCurrency = {
+      BEN: "XOF", CMR: "XAF", CIV: "XOF", COD: "CDF", GAB: "XAF",
+      KEN: "KES", MOZ: "MZN", COG: "XAF", RWA: "RWF", SEN: "XOF",
+      SLE: "SLE", UGA: "UGX", ZMB: "ZMW"
+    }[country];
+    const option = countryOptions.find(item => item.currency === localCurrency)
+      || (countryOptions.length === 1 ? countryOptions[0] : null);
+    if (!option) return reply(response, 422, { error: "Payments are not available for this country right now. Please contact SIN AI." });
+
+    let quote;
+    try {
+      quote = validateQuote({
+        reference: "SIN-PAYMENT",
+        reason: "SIN AI services",
+        amount: request.body?.amount,
+        currency: option.currency
+      });
+    } catch (error) {
+      return reply(response, 400, { error: error.message });
+    }
+    const decimals = Number(option.decimals ?? 3);
+    const hasExcessDecimals = (quote.amount.split(".")[1] || "").length > decimals;
+    if (hasExcessDecimals || Number(quote.amount) < option.minTransactionLimit || Number(quote.amount) > option.maxTransactionLimit) {
+      return reply(response, 422, { error: "Enter an amount allowed for your country and mobile money wallet." });
     }
 
     let phoneNumber;
@@ -94,7 +105,7 @@ export default async function handler(request, response) {
         provider_status: "INITIATING",
         manual_review_status: "PENDING",
         deposit_id: depositId,
-        country: quote.country,
+        country,
         phone_number: phoneNumber,
         expires_at: expiresAt
       })
