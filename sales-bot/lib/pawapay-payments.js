@@ -38,11 +38,19 @@ export function getOperationalDepositCurrencies(config = {}) {
   for (const country of config.countries || []) {
     for (const provider of country.providers || []) {
       for (const item of provider.currencies || []) {
-        if (item.operationTypes?.DEPOSIT?.status === "OPERATIONAL") currencies.add(item.currency);
+        if (depositOperation(item.operationTypes)?.status === "OPERATIONAL") currencies.add(item.currency);
       }
     }
   }
   return [...currencies].sort();
+}
+
+function depositOperation(operationTypes) {
+  if (Array.isArray(operationTypes)) {
+    const entry = operationTypes.find(item => item?.operationType === "DEPOSIT" || item?.DEPOSIT);
+    return entry?.DEPOSIT || entry || {};
+  }
+  return operationTypes?.DEPOSIT || {};
 }
 
 export function supportsDepositQuote(config = {}, quote) {
@@ -50,9 +58,9 @@ export function supportsDepositQuote(config = {}, quote) {
     (country.providers || []).some(provider =>
       (provider.currencies || []).some(item =>
         item.currency === quote.currency &&
-        item.operationTypes?.DEPOSIT?.status === "OPERATIONAL" &&
-        Number(quote.amount) >= Number(item.operationTypes.DEPOSIT.minTransactionLimit || 0) &&
-        Number(quote.amount) <= Number(item.operationTypes.DEPOSIT.maxTransactionLimit || Number.POSITIVE_INFINITY)
+        depositOperation(item.operationTypes).status === "OPERATIONAL" &&
+        Number(quote.amount) >= Number(depositOperation(item.operationTypes).minTransactionLimit || 0) &&
+        Number(quote.amount) <= Number(depositOperation(item.operationTypes).maxTransactionLimit || Number.POSITIVE_INFINITY)
       )
     )
   );

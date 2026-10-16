@@ -13,6 +13,11 @@ export default async function handler(request, response) {
   try {
     const { response: configResponse, data: config } = await pawapayRequest("/v2/active-conf?operationType=DEPOSIT");
     if (!configResponse.ok || !Array.isArray(config.countries)) {
+      console.warn("PawaPay active configuration unavailable:", JSON.stringify({
+        status: configResponse.status,
+        failureCode: config.failureReason?.failureCode || null,
+        countriesArray: Array.isArray(config.countries)
+      }));
       return reply(response, 502, { error: "Payment currencies are temporarily unavailable." });
     }
     return reply(response, 200, { currencies: getOperationalDepositCurrencies(config) });

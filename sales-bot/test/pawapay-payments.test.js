@@ -34,6 +34,17 @@ test("lists only operational deposit currencies and checks the amount against pr
   assert.equal(supportsDepositQuote(config, { amount: "1000", currency: "KES" }), false);
 });
 
+test("reads PawaPay deposit operations in its documented array response shape", () => {
+  const config = { countries: [{ providers: [{ currencies: [
+    { currency: "UGX", operationTypes: [{ DEPOSIT: { status: "OPERATIONAL", minTransactionLimit: "500", maxTransactionLimit: "20000000" } }] },
+    { currency: "KES", operationTypes: [{ operationType: "DEPOSIT", status: "CLOSED" }] },
+    { currency: "EUR", operationTypes: [{ operationType: "PAYOUT", status: "OPERATIONAL" }] }
+  ] }] }] };
+  assert.deepEqual(getOperationalDepositCurrencies(config), ["UGX"]);
+  assert.equal(supportsDepositQuote(config, { amount: "1000", currency: "UGX" }), true);
+  assert.equal(supportsDepositQuote(config, { amount: "25000000", currency: "UGX" }), false);
+});
+
 test("payment-link token hashes are stable and staff key comparison is exact", () => {
   assert.equal(hashPaymentToken("link-token"), hashPaymentToken("link-token"));
   assert.notEqual(hashPaymentToken("link-token"), "link-token");
