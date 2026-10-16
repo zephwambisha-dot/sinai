@@ -1,11 +1,10 @@
 {
-  "name": "sin-ai-sales-bot",
-  "version": "0.2.0",
+  "name": "sin-ai-pawapay-checkout",
+  "version": "1.0.0",
   "private": true,
-  "description": "SIN AI Sales Bot website with optional backend OpenAI API and lead storage.",
+  "description": "SIN AI customer payment checkout and callback API.",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
     "test": "node --test"
   },
   "engines": {
