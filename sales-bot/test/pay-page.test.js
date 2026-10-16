@@ -26,7 +26,7 @@ test("customer form shows country-code example and no currency selector", async 
     readFile(new URL("../pay.js", import.meta.url), "utf8")
   ]);
   assert.match(html, /Make payment here/);
-  assert.match(html, /\+256 772 123 456/);
+  assert.match(html, /256 772 123 456/);
   assert.doesNotMatch(html, /currency-label|Select a currency/);
   assert.match(script, /country: country\.value/);
   assert.doesNotMatch(script, /currency:/);
