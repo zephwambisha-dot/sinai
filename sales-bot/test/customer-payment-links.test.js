@@ -93,10 +93,10 @@ test("rejects invalid phone numbers without creating a payment", async () => {
     await handler({
       method: "POST",
       headers: { origin: "https://checkout.example.test", host: "checkout.example.test", "x-forwarded-for": crypto.randomUUID() },
-      body: { country: "UGA", phoneNumber: "abc", amount: "1500" }
+      body: { country: "UGA", phoneNumber: "0772 123 456", amount: "1500" }
     }, response);
     assert.equal(response.code, 400);
-    assert.match(response.body.error, /phone/i);
+    assert.match(response.body.error, /number/i);
     assert.equal(paymentCreated, false);
   } finally {
     globalThis.fetch = oldFetch;
