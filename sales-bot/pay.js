@@ -5,6 +5,21 @@ const amount = document.getElementById("amount");
 const currencyLabel = document.getElementById("currency-label");
 const submitButton = document.getElementById("prepare-button");
 const notice = document.getElementById("pay-entry-notice");
+const countryDirectory = [
+  { code: "BEN", name: "Benin", flag: "🇧🇯" },
+  { code: "CMR", name: "Cameroon", flag: "🇨🇲" },
+  { code: "CIV", name: "Côte d’Ivoire", flag: "🇨🇮" },
+  { code: "COD", name: "Democratic Republic of the Congo", flag: "🇨🇩" },
+  { code: "GAB", name: "Gabon", flag: "🇬🇦" },
+  { code: "KEN", name: "Kenya", flag: "🇰🇪" },
+  { code: "MOZ", name: "Mozambique", flag: "🇲🇿" },
+  { code: "COG", name: "Republic of the Congo", flag: "🇨🇬" },
+  { code: "RWA", name: "Rwanda", flag: "🇷🇼" },
+  { code: "SEN", name: "Senegal", flag: "🇸🇳" },
+  { code: "SLE", name: "Sierra Leone", flag: "🇸🇱" },
+  { code: "UGA", name: "Uganda", flag: "🇺🇬" },
+  { code: "ZMB", name: "Zambia", flag: "🇿🇲" }
+];
 let paymentOptions = [];
 
 function showNotice(message, type = "") {
@@ -14,35 +29,43 @@ function showNotice(message, type = "") {
 }
 
 function updateCountryCurrency() {
-  const [countryCode, currency] = country.value.split(":");
-  const selected = paymentOptions.find(item => item.country === countryCode && item.currency === currency);
-  currencyLabel.textContent = selected ? `Currency: ${selected.currency}` : "";
+  const selected = paymentOptions.find(item => item.country === country.value);
+  currencyLabel.textContent = selected ? selected.currency : "Select a country";
   if (selected) {
     amount.step = selected.decimals === 0 ? "1" : `0.${"0".repeat(Math.max(0, selected.decimals - 1))}1`;
     amount.min = selected.minTransactionLimit || (selected.decimals === 0 ? "1" : "0.01");
     amount.max = Number.isFinite(selected.maxTransactionLimit) ? selected.maxTransactionLimit : "";
     phoneNumber.placeholder = `Country code +${selected.prefix} will be added if needed`;
   }
+  submitButton.disabled = !selected;
+}
+
+function renderCountryDirectory() {
+  country.replaceChildren(new Option("Select your country", ""));
+  for (const item of countryDirectory) {
+    const hasOperationalDeposit = paymentOptions.some(option => option.country === item.code && option.prefix);
+    const option = new Option(`${item.flag}   ${item.name}`, item.code);
+    option.disabled = !hasOperationalDeposit;
+    country.add(option);
+  }
+  country.disabled = false;
+  country.addEventListener("change", updateCountryCurrency);
 }
 
 async function loadCountries() {
   try {
     const response = await fetch("/api/payment-options", { cache: "no-store" });
     const data = await response.json();
-    if (!response.ok || !Array.isArray(data.countries) || !data.countries.length) {
-      throw new Error(data.error || "No payment countries are available right now.");
+    if (!response.ok || !Array.isArray(data.countries)) {
+      renderCountryDirectory();
+      throw new Error(data.error || "Payment countries are temporarily unavailable.");
     }
     paymentOptions = data.countries;
-    country.replaceChildren(new Option("Choose your country", ""));
-    for (const option of paymentOptions) {
-      country.add(new Option(`${option.name} (${option.currency})`, `${option.country}:${option.currency}`));
-    }
-    country.disabled = false;
-    country.addEventListener("change", updateCountryCurrency);
-    submitButton.disabled = false;
+    renderCountryDirectory();
+    if (!paymentOptions.length) showNotice("Mobile money payments are temporarily unavailable. Please contact our team.", "error");
   } catch (error) {
-    country.replaceChildren(new Option("Unavailable", ""));
-    showNotice(error.message || "Could not load payment countries. Please try again later.", "error");
+    if (!country.options.length || country.options.length === 1) renderCountryDirectory();
+    showNotice(error.message || "Could not load payment options. Please try again later.", "error");
   }
 }
 
@@ -52,13 +75,13 @@ form.addEventListener("submit", async event => {
   submitButton.textContent = "Starting payment…";
   showNotice("Checking your country, phone number, and amount.");
   try {
-    const [countryCode, currency] = country.value.split(":");
+    const selected = paymentOptions.find(item => item.country === country.value);
     const response = await fetch("/api/customer-payment-links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        country: countryCode,
-        currency,
+        country: country.value,
+        currency: selected?.currency,
         phoneNumber: phoneNumber.value,
         amount: amount.value,
         website: document.getElementById("website").value

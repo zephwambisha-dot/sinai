@@ -10,33 +10,56 @@
 </head>
 <body>
   <main class="checkout-shell">
-    <a class="brand" href="https://sinaigo.com/"><span class="brand-mark">S</span><span>SIN AI</span></a>
-    <section class="checkout-card" aria-labelledby="pay-title">
-      <p class="eyebrow">Secure mobile money checkout</p>
-      <h1 id="pay-title">Pay SIN AI</h1>
-      <p class="intro">Choose your country, enter the mobile money number and the amount SIN AI quoted you, then continue to PawaPay to approve the payment prompt.</p>
+    <header class="portal-nav">
+      <a class="brand" href="https://sinaigo.com/" aria-label="SIN AI home"><img src="/assets/sin-ai-logo.svg" alt="SIN AI"></a>
+      <nav aria-label="SIN AI links">
+        <a href="https://sinaigo.com/#tracker">Tracker</a>
+        <a href="https://sinaigo.com/#process">Process</a>
+        <a href="https://wa.me/256765821430?text=Hello%20SIN%20AI%2C%20I%20need%20help%20with%20a%20payment.">Support</a>
+      </nav>
+    </header>
+
+    <section class="checkout-intro" aria-labelledby="pay-title">
+      <p class="eyebrow"><span class="eyebrow-dot"></span> SIN AI CLIENT CHECKOUT</p>
+      <h1 id="pay-title">A clear next step<br>for your project.</h1>
+      <p class="intro">Enter the details shared with you by our team. You’ll receive a mobile money prompt to approve.</p>
+    </section>
+
+    <section class="checkout-card" aria-label="Payment details">
       <form id="customer-payment-form">
-        <label for="country">Country</label>
-        <select id="country" name="country" required disabled>
-          <option value="">Loading countries…</option>
-        </select>
-        <label for="phone-number">Mobile money phone number</label>
-        <input id="phone-number" name="phoneNumber" type="tel" inputmode="tel" autocomplete="tel" required placeholder="Enter your mobile money number">
-        <div class="amount-label-row">
-          <label for="amount">Amount quoted by SIN AI</label>
-          <span id="currency-label" aria-live="polite"></span>
+        <div class="form-section-heading"><span class="step-number">01</span><div><p class="eyebrow">Payment details</p><h2>Where should we send the prompt?</h2></div></div>
+        <div class="field-grid">
+          <div class="field-group field-wide">
+            <label for="country">Country</label>
+            <select id="country" name="country" required disabled>
+              <option value="">Loading payment countries…</option>
+            </select>
+            <p class="field-hint">Choose the country for the mobile money account.</p>
+          </div>
+          <div class="field-group field-wide">
+            <label for="phone-number">Mobile money number</label>
+            <input id="phone-number" name="phoneNumber" type="tel" inputmode="tel" autocomplete="tel" required placeholder="e.g. 0772 123 456">
+            <p class="field-hint">Use the number connected to your mobile money wallet.</p>
+          </div>
+          <div class="field-group field-wide">
+            <div class="amount-label-row"><label for="amount">Amount quoted by our team</label><span id="currency-label" class="currency-pill" aria-live="polite">Select a country</span></div>
+            <input id="amount" name="amount" inputmode="decimal" type="number" min="0.01" step="0.01" required placeholder="Enter the agreed amount">
+            <p class="field-hint">Enter the exact amount shared with you by SIN AI.</p>
+          </div>
         </div>
-        <input id="amount" name="amount" inputmode="decimal" type="number" min="0.01" step="0.01" required placeholder="Enter the agreed amount">
         <div class="honeypot" aria-hidden="true">
           <label for="website">Leave this field empty</label>
           <input id="website" name="website" tabindex="-1" autocomplete="off">
         </div>
-        <p class="secure-note">Enter the exact amount SIN AI quoted. After you approve the prompt, send the PawaPay transaction message to our team. We verify each payment before starting work.</p>
-        <button class="pay-button" id="prepare-button" type="submit" disabled>Pay</button>
+        <div class="form-footer">
+          <p class="secure-note"><span class="secure-icon" aria-hidden="true">↗</span> Your payment prompt is handled securely by PawaPay. Our team will verify your transaction before work begins.</p>
+          <button class="pay-button" id="prepare-button" type="submit" disabled><span>Continue to payment</span><span aria-hidden="true">↗</span></button>
+        </div>
       </form>
       <div id="pay-entry-notice" class="notice" role="status" aria-live="polite" hidden></div>
-      <a class="help-link" href="https://wa.me/256765821430?text=Hello%20SIN%20AI%2C%20I%20need%20help%20with%20a%20payment.">Need help? Contact SIN AI</a>
     </section>
+
+    <footer class="checkout-foot"><span>Need help?</span><a href="https://wa.me/256765821430?text=Hello%20SIN%20AI%2C%20I%20need%20help%20with%20a%20payment.">Message SIN AI on WhatsApp <span aria-hidden="true">↗</span></a></footer>
   </main>
 </body>
 </html>
