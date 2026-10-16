@@ -60,6 +60,32 @@ Optional:
 - `BRAVE_SEARCH_API_KEY` enables Brave Search as the dedicated search provider. Without it, the app tries the active AI provider's native web search where available.
 - `HOT_LEAD_WEBHOOK_URL` sends hot leads to another automation/webhook endpoint.
 
+## PawaPay Sandbox Deposit Test
+
+The endpoint at `/api/pawapay-sandbox-test` is a developer smoke test, not a customer checkout. It is locked to PawaPay's Sandbox API, accepts only the documented Uganda Sandbox test wallets below, and refuses to run unless `PAWAPAY_ENV=sandbox`. It cannot initiate a live payment.
+
+- MTN Uganda test wallet: `256753456789` (`MTN_MOMO_UGA`)
+- Airtel Uganda test wallet: `256783456789` (`AIRTEL_OAPI_UGA`)
+- Test amounts are restricted to whole UGX values from 1 to 1,000.
+
+For a Vercel **Preview** deployment, configure:
+
+- `PAWAPAY_ENV=sandbox`
+- `PAWAPAY_API_TOKEN` = the token generated in the PawaPay Sandbox dashboard
+- `PAWAPAY_SANDBOX_TEST_KEY` = a separate long random secret used only to authorize this test endpoint
+- The existing Supabase variables, if you want the signed Sandbox callback stored
+
+Do not use the production token for this endpoint. Keep the live token in Vercel's **Production** environment, where `PAWAPAY_ENV=production`.
+
+After a Preview deployment is available, use Postman:
+
+1. Create a `POST` request to `https://<preview-deployment>/api/pawapay-sandbox-test`.
+2. Add header `x-pawapay-test-key` with the value of `PAWAPAY_SANDBOX_TEST_KEY`.
+3. Set the body to JSON, for example: `{"phoneNumber":"256753456789","amount":"100"}`.
+4. Send the request. A response of `ACCEPTED` means PawaPay accepted the request for processing; check the final status in the Sandbox dashboard or through the configured callback.
+
+The endpoint is protected by the separate test key, limits accepted phone numbers to PawaPay's documented Uganda test wallets, caps test amounts, and never sends requests to the production API.
+
 ## PawaPay Callback Receiver
 
 The SIN AI marketing site and project tracker are static GitHub Pages files; they cannot receive PawaPay server-to-server POST requests. This repo includes a Vercel API callback receiver at `api/pawapay-callback.js`.
