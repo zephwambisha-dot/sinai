@@ -33,6 +33,31 @@ export function validateQuote(body = {}) {
   return { reference, reason, amount, currency };
 }
 
+export function getOperationalDepositCurrencies(config = {}) {
+  const currencies = new Set();
+  for (const country of config.countries || []) {
+    for (const provider of country.providers || []) {
+      for (const item of provider.currencies || []) {
+        if (item.operationTypes?.DEPOSIT?.status === "OPERATIONAL") currencies.add(item.currency);
+      }
+    }
+  }
+  return [...currencies].sort();
+}
+
+export function supportsDepositQuote(config = {}, quote) {
+  return (config.countries || []).some(country =>
+    (country.providers || []).some(provider =>
+      (provider.currencies || []).some(item =>
+        item.currency === quote.currency &&
+        item.operationTypes?.DEPOSIT?.status === "OPERATIONAL" &&
+        Number(quote.amount) >= Number(item.operationTypes.DEPOSIT.minTransactionLimit || 0) &&
+        Number(quote.amount) <= Number(item.operationTypes.DEPOSIT.maxTransactionLimit || Number.POSITIVE_INFINITY)
+      )
+    )
+  );
+}
+
 export async function pawapayRequest(path, options = {}) {
   const token = process.env.PAWAPAY_API_TOKEN;
   if (!token) throw new Error("PawaPay is not configured on the server.");

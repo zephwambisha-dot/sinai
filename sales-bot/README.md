@@ -64,7 +64,7 @@ Optional:
 
 The SIN AI marketing site and project tracker are static GitHub Pages files; they cannot receive PawaPay server-to-server POST requests. This repo includes a Vercel API callback receiver at `api/pawapay-callback.js`.
 
-The customer checkout uses PawaPay's hosted Payment Page. Staff create a payment link only after a quote is approved; the amount and currency are fixed, while PawaPay presents the countries and mobile money options currently enabled on the account. A PawaPay session is created when a customer opens the link, so the provider's 15-minute session limit does not shorten the quote link. Quote links expire after 30 days.
+The customer checkout uses PawaPay's hosted Payment Page. Customers can open `/pay`, enter the amount and currency SIN AI already agreed with them, and provide their quote reference. The server validates the entry against PawaPay's currently enabled deposit options and saves an immutable quote before checkout. PawaPay then presents the countries and mobile money options currently enabled on the account. A PawaPay session is created when the customer continues to payment, so the quote link's 30-day validity is separate from the provider's 15-minute session limit. SIN AI must match the payment to its quote before starting work. Staff can also create a link in `/payment-admin` for customers who need help.
 
 The callback receiver verifies PawaPay's signed callback headers against PawaPay's public key endpoint, checks the signed request body digest and signature time window, and stores only minimal transaction fields. It does not store phone numbers or raw callback bodies. Duplicate callbacks upsert the same operation and transaction ID. A verified deposit callback also updates the matching quote payment status.
 
@@ -86,7 +86,17 @@ The callback receiver verifies PawaPay's signed callback headers against PawaPay
 
 6. Test the full flow in PawaPay Sandbox first. The receiver returns HTTP 200 only after signature verification and durable storage succeed, so PawaPay can retry temporary failures.
 
-### Create and send an approved quote link
+### Customer-entered agreed amount
+
+1. Direct the customer to `/pay` on the Vercel checkout site.
+2. The customer enters the quote reference, service, exact agreed amount, and currency.
+3. The server verifies that the amount and currency fit an operational PawaPay deposit option, then saves a fixed quote record.
+4. The customer reviews that saved amount and continues to PawaPay. They cannot change the amount in the payment session.
+5. Match the paid amount and reference to the agreed quote before starting work.
+
+This public form accepts customer-supplied amounts so it does not depend on a fixed price list. It has basic same-origin, honeypot, and per-instance rate-limit checks; keep the form on the SIN AI checkout domain and review unpaid or mismatched references manually.
+
+### Staff-created quote link (fallback)
 
 1. Open `/payment-admin` on the Vercel site.
 2. Enter the staff-only key and the approved quote reference, description, amount, and currency.

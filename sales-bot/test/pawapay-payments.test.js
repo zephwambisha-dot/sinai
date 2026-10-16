@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hashPaymentToken, secureStringEqual, validateQuote } from "../lib/pawapay-payments.js";
+import { getOperationalDepositCurrencies, hashPaymentToken, secureStringEqual, supportsDepositQuote, validateQuote } from "../lib/pawapay-payments.js";
 import paymentStartHandler from "../api/payment-start.js";
 
 test("validates a fixed international quote and normalizes its currency", () => {
@@ -21,6 +21,17 @@ test("rejects invalid and zero quote amounts before contacting PawaPay", () => {
   for (const amount of ["0", "-1", "01", "12.1234", "1e3", ""]) {
     assert.throws(() => validateQuote({ reference: "Q-1", reason: "Service", amount, currency: "UGX" }));
   }
+});
+
+test("lists only operational deposit currencies and checks the amount against provider limits", () => {
+  const config = { countries: [{ providers: [{ currencies: [
+    { currency: "UGX", operationTypes: { DEPOSIT: { status: "OPERATIONAL", minTransactionLimit: "500", maxTransactionLimit: "20000000" } } },
+    { currency: "KES", operationTypes: { DEPOSIT: { status: "NOT_OPERATIONAL" } } }
+  ] }] }] };
+  assert.deepEqual(getOperationalDepositCurrencies(config), ["UGX"]);
+  assert.equal(supportsDepositQuote(config, { amount: "1000", currency: "UGX" }), true);
+  assert.equal(supportsDepositQuote(config, { amount: "200", currency: "UGX" }), false);
+  assert.equal(supportsDepositQuote(config, { amount: "1000", currency: "KES" }), false);
 });
 
 test("payment-link token hashes are stable and staff key comparison is exact", () => {

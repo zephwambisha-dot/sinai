@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getPublicBaseUrl, hashPaymentToken, pawapayRequest, secureStringEqual, supabaseRequest, validateQuote } from "../lib/pawapay-payments.js";
+import { getPublicBaseUrl, hashPaymentToken, pawapayRequest, secureStringEqual, supportsDepositQuote, supabaseRequest, validateQuote } from "../lib/pawapay-payments.js";
 
 function reply(response, code, body) {
   response.setHeader("Cache-Control", "no-store");
@@ -23,16 +23,7 @@ export default async function handler(request, response) {
     if (!configResponse.ok || !Array.isArray(config.countries)) {
       return reply(response, 502, { error: "Could not read the enabled PawaPay payment options." });
     }
-    const hasCurrency = config.countries.some(country =>
-      (country.providers || []).some(provider =>
-        (provider.currencies || []).some(currency =>
-          currency.currency === quote.currency && (currency.operationTypes || []).some(operation =>
-            operation.DEPOSIT?.status === "OPERATIONAL" && Number(quote.amount) >= Number(operation.DEPOSIT.minTransactionLimit || 0) && Number(quote.amount) <= Number(operation.DEPOSIT.maxTransactionLimit || Number.POSITIVE_INFINITY)
-          )
-        )
-      )
-    );
-    if (!hasCurrency) return reply(response, 422, { error: `The amount or currency is not currently enabled for deposits on this PawaPay account.` });
+    if (!supportsDepositQuote(config, quote)) return reply(response, 422, { error: `The amount or currency is not currently enabled for deposits on this PawaPay account.` });
 
     const baseUrl = getPublicBaseUrl(request);
     const token = crypto.randomBytes(32).toString("base64url");
