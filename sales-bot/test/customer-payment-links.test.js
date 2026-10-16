@@ -52,7 +52,7 @@ test("starts a payment page from customer country, phone, and amount inputs", as
     await handler({
       method: "POST",
       headers: { origin: "https://checkout.example.test", host: "checkout.example.test", "x-forwarded-for": crypto.randomUUID() },
-      body: { country: "UGA", phoneNumber: "+256 772 123 456", amount: "1500" }
+      body: { country: "UGA", phoneNumber: "256 772 123 456", amount: "1500" }
     }, response);
     assert.equal(response.code, 201);
     assert.equal(response.body.paymentUrl, "https://paywith.pawapay.io/session");
