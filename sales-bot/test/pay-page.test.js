@@ -19,3 +19,15 @@ test("checkout uses the SIN AI light palette and logo asset", async () => {
   assert.match(css, /--ink: #11100e/);
   assert.match(css, /\.portal-nav/);
 });
+
+test("customer form shows country-code example and no currency selector", async () => {
+  const [html, script] = await Promise.all([
+    readFile(new URL("../pay.html", import.meta.url), "utf8"),
+    readFile(new URL("../pay.js", import.meta.url), "utf8")
+  ]);
+  assert.match(html, /Make payment here/);
+  assert.match(html, /\+256 772 123 456/);
+  assert.doesNotMatch(html, /currency-label|Select a currency/);
+  assert.match(script, /country: country\.value/);
+  assert.doesNotMatch(script, /currency:/);
+});
