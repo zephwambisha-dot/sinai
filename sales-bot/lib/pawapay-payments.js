@@ -78,13 +78,12 @@ export function getDepositPaymentOptions(config = {}) {
 
 export function normalizePawapayPhone(input, countryPrefix) {
   const raw = String(input || "").trim();
-  if (!/^[+\d\s().-]+$/.test(raw)) throw new Error("Enter a valid mobile money phone number.");
+  if (!/^[\d\s().-]+$/.test(raw)) throw new Error("Enter a valid mobile money phone number.");
   let digits = raw.replace(/\D/g, "");
   const prefix = String(countryPrefix || "").replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
   if (!prefix) throw new Error("This country is missing its mobile country code.");
   if (!digits.startsWith(prefix)) {
-    throw new Error(`Enter the full international number starting with +${prefix}; do not start with 0.`);
+    throw new Error(`Enter the full international number starting with ${prefix}; do not start with 0 or add +.`);
   }
   if (digits.length < 8 || digits.length > 15 || !digits.startsWith(prefix) || digits.startsWith("0")) {
     throw new Error("Enter a valid phone number for the selected country.");
