@@ -119,7 +119,7 @@ export default async function handler(request, response) {
         customerMessage: "SIN AI Services",
         amountDetails: { amount: quote.amount, currency: quote.currency },
         phoneNumber,
-        country: quote.country,
+        country,
         language: "EN",
         reason: quote.reason,
         metadata: [{ invoiceReference: reference }]
