@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import handler from "./pawapay-sandbox-test.js";
+import handler from "../api/pawapay-sandbox-test.js";
 
 function responseMock() {
   return {
