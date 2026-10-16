@@ -5,7 +5,8 @@
   "description": "SIN AI Sales Bot website with optional backend OpenAI API and lead storage.",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"

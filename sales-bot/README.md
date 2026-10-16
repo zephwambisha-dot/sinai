@@ -60,6 +60,30 @@ Optional:
 - `BRAVE_SEARCH_API_KEY` enables Brave Search as the dedicated search provider. Without it, the app tries the active AI provider's native web search where available.
 - `HOT_LEAD_WEBHOOK_URL` sends hot leads to another automation/webhook endpoint.
 
+## PawaPay Callback Receiver
+
+The SIN AI marketing site and project tracker are static GitHub Pages files; they cannot receive PawaPay server-to-server POST requests. This repo includes a Vercel API callback receiver at `api/pawapay-callback.js`.
+
+The receiver verifies PawaPay's signed callback headers against PawaPay's public key endpoint, checks the signed request body digest and signature time window, and stores only minimal transaction fields. It does not store phone numbers or raw callback bodies. Duplicate callbacks upsert the same operation and transaction ID.
+
+### Setup
+
+1. Deploy `sales-bot/` as a Vercel project (set the Vercel project Root Directory to `sales-bot`). The public website can remain on GitHub Pages.
+2. Create a Supabase project, open its SQL Editor, and run `pawapay-callbacks.sql`.
+3. In Vercel Project Settings → Environment Variables, add:
+   - `PAWAPAY_ENV` = `sandbox` (use `production` only after moving to the live PawaPay account)
+   - `PAWAPAY_API_TOKEN` = the token for that same PawaPay environment
+   - `SUPABASE_URL` = the Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY` = the Supabase service-role key, marked sensitive
+4. Redeploy the Vercel project.
+5. In the matching PawaPay dashboard, enable **signed callbacks**. Use the same deployed URL for the callback types you need:
+
+   `https://<your-vercel-project>.vercel.app/api/pawapay-callback`
+
+6. Test with PawaPay Sandbox first. The receiver returns HTTP 200 only after signature verification and durable storage succeed, so PawaPay can retry temporary failures.
+
+Never place the PawaPay token or Supabase service-role key in browser JavaScript, GitHub, or this chat. The receiver records callback status but does not yet initiate customer payments or automatically alter the existing Google Sheets project tracker.
+
 ## How To Customize
 
 1. Open the app.
