@@ -1,87 +1,64 @@
 const form = document.getElementById("customer-payment-form");
 const country = document.getElementById("country");
 const phoneNumber = document.getElementById("phone-number");
+const phoneHint = document.getElementById("phone-number-hint");
 const amount = document.getElementById("amount");
-const currencyLabel = document.getElementById("currency-label");
 const submitButton = document.getElementById("prepare-button");
 const notice = document.getElementById("pay-entry-notice");
+
 const countryDirectory = [
-  { code: "BEN", name: "Benin", flag: "🇧🇯" },
-  { code: "CMR", name: "Cameroon", flag: "🇨🇲" },
-  { code: "CIV", name: "Côte d’Ivoire", flag: "🇨🇮" },
-  { code: "COD", name: "Democratic Republic of the Congo", flag: "🇨🇩" },
-  { code: "GAB", name: "Gabon", flag: "🇬🇦" },
-  { code: "KEN", name: "Kenya", flag: "🇰🇪" },
-  { code: "MOZ", name: "Mozambique", flag: "🇲🇿" },
-  { code: "COG", name: "Republic of the Congo", flag: "🇨🇬" },
-  { code: "RWA", name: "Rwanda", flag: "🇷🇼" },
-  { code: "SEN", name: "Senegal", flag: "🇸🇳" },
-  { code: "SLE", name: "Sierra Leone", flag: "🇸🇱" },
-  { code: "UGA", name: "Uganda", flag: "🇺🇬" },
-  { code: "ZMB", name: "Zambia", flag: "🇿🇲" }
+  { code: "BEN", name: "Benin", flag: "🇧🇯", prefix: "229" },
+  { code: "CMR", name: "Cameroon", flag: "🇨🇲", prefix: "237" },
+  { code: "CIV", name: "Côte d’Ivoire", flag: "🇨🇮", prefix: "225" },
+  { code: "COD", name: "Democratic Republic of the Congo", flag: "🇨🇩", prefix: "243" },
+  { code: "GAB", name: "Gabon", flag: "🇬🇦", prefix: "241" },
+  { code: "KEN", name: "Kenya", flag: "🇰🇪", prefix: "254" },
+  { code: "MOZ", name: "Mozambique", flag: "🇲🇿", prefix: "258" },
+  { code: "COG", name: "Republic of the Congo", flag: "🇨🇬", prefix: "242" },
+  { code: "RWA", name: "Rwanda", flag: "🇷🇼", prefix: "250" },
+  { code: "SEN", name: "Senegal", flag: "🇸🇳", prefix: "221" },
+  { code: "SLE", name: "Sierra Leone", flag: "🇸🇱", prefix: "232" },
+  { code: "UGA", name: "Uganda", flag: "🇺🇬", prefix: "256" },
+  { code: "ZMB", name: "Zambia", flag: "🇿🇲", prefix: "260" }
 ];
-let paymentOptions = [];
 
 function showNotice(message, type = "") {
   notice.hidden = false;
-  notice.className = `notice${type ? ` ${type}` : ""}`;
+  notice.className = "notice" + (type ? " " + type : "");
   notice.textContent = message;
 }
 
-function updateCountryCurrency() {
-  const selected = paymentOptions.find(item => item.country === country.value);
-  currencyLabel.textContent = selected ? selected.currency : "Select a country";
-  if (selected) {
-    amount.step = selected.decimals === 0 ? "1" : `0.${"0".repeat(Math.max(0, selected.decimals - 1))}1`;
-    amount.min = selected.minTransactionLimit || (selected.decimals === 0 ? "1" : "0.01");
-    amount.max = Number.isFinite(selected.maxTransactionLimit) ? selected.maxTransactionLimit : "";
-    phoneNumber.placeholder = `Country code +${selected.prefix} will be added if needed`;
-  }
+function updateCountryDetails() {
+  const selected = countryDirectory.find(item => item.code === country.value);
   submitButton.disabled = !selected;
+  if (selected) {
+    phoneNumber.placeholder = "+" + selected.prefix + " then your number";
+    phoneHint.textContent = "Enter the full number with country code first. Example: +256 772 123 456. Do not start with 0.";
+  } else {
+    phoneNumber.placeholder = "+country code, then your number";
+  }
 }
 
 function renderCountryDirectory() {
   country.replaceChildren(new Option("Select your country", ""));
   for (const item of countryDirectory) {
-    const hasOperationalDeposit = paymentOptions.some(option => option.country === item.code && option.prefix);
-    const option = new Option(`${item.flag}   ${item.name}`, item.code);
-    option.disabled = !hasOperationalDeposit;
-    country.add(option);
+    country.add(new Option(item.flag + "   " + item.name, item.code));
   }
-  country.disabled = false;
-  country.addEventListener("change", updateCountryCurrency);
-}
-
-async function loadCountries() {
-  try {
-    const response = await fetch("/api/payment-options", { cache: "no-store" });
-    const data = await response.json();
-    if (!response.ok || !Array.isArray(data.countries)) {
-      renderCountryDirectory();
-      throw new Error(data.error || "Payment countries are temporarily unavailable.");
-    }
-    paymentOptions = data.countries;
-    renderCountryDirectory();
-    if (!paymentOptions.length) showNotice("Mobile money payments are temporarily unavailable. Please contact our team.", "error");
-  } catch (error) {
-    if (!country.options.length || country.options.length === 1) renderCountryDirectory();
-    showNotice(error.message || "Could not load payment options. Please try again later.", "error");
-  }
+  country.addEventListener("change", updateCountryDetails);
+  updateCountryDetails();
 }
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
   submitButton.disabled = true;
-  submitButton.textContent = "Starting payment…";
-  showNotice("Checking your country, phone number, and amount.");
+  submitButton.innerHTML = "<span>Starting payment…</span><span aria-hidden=\"true\">↗</span>";
+  showNotice("Sending a payment request to your phone.");
   try {
-    const selected = paymentOptions.find(item => item.country === country.value);
     const response = await fetch("/api/customer-payment-links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         country: country.value,
-        currency: selected?.currency,
         phoneNumber: phoneNumber.value,
         amount: amount.value,
         website: document.getElementById("website").value
@@ -94,8 +71,8 @@ form.addEventListener("submit", async event => {
     showNotice(error.message || "Could not start this payment. Please try again.", "error");
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = "Pay";
+    submitButton.innerHTML = "<span>Pay now</span><span aria-hidden=\"true\">↗</span>";
   }
 });
 
-loadCountries();
+renderCountryDirectory();
